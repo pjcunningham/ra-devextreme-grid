@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Production build artifacts
+dist/
+dist-example/
+
+# Test coverage
+coverage/
+
+# Local environment and secret files
+.env
+.env.*
+!.env.example
+*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.output.txt
+
+# Editor and OS directories
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Local PyCharm / IntelliJ files that should not be tracked
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/shelf/
+.idea/**/contentModel.xml
+.idea/*.iml
