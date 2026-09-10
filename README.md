@@ -5,17 +5,18 @@
 [![CI](https://github.com/pjcunningham/ra-devextreme-grid/actions/workflows/ci.yml/badge.svg)](https://github.com/pjcunningham/ra-devextreme-grid/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Status: Early Development (Phase 1 Implemented)
+## Status: Early Development (Phase 2 Implemented)
 
 `ra-devextreme-grid` is currently under active early development and is **not yet production-ready**.
 
-The repository has implemented **Phase 1: Read-Only Managed Grid**. In this phase:
+The repository has implemented **Phase 2: Managed Paging and Single-Column Sorting**. In this phase:
 
 - `DatagridDX` is a managed React-Admin grid component used inside `<List>`.
-- React-Admin owns record fetching via `useListContext<RecordType>()`.
-- DevExtreme DataGrid renders records without reshaping them.
+- `DatagridDXPagination` is an exported standalone pagination component backed by DevExtreme's `Pagination` widget.
+- React-Admin owns all remote data fetching via `useListContext<RecordType>()`, along with page index, page size, total record count, and sort state.
+- Interactive single-column server sorting is enabled with bidirectional synchronization and a feedback-loop guard.
+- DataGrid internal paging remains disabled (`paging.enabled = false`) to guarantee that server-paged subsets are never locally re-paged by DevExtreme.
 - Row identity is locked to canonical `record.id`.
-- Data-shaping safeguards are enforced: DevExtreme client-side paging is disabled (`paging.enabled = false`) and interactive sorting is disabled (`sorting.mode = "none"`) to prevent desynchronization with server-ordered pages until Phase 2.
 
 ## Overview & Purpose
 
@@ -62,13 +63,13 @@ Supported peer ranges:
 
 ## Usage Example
 
-`DatagridDX` must be used within a React-Admin `<List>` (or any component providing a `ListContext`):
+`DatagridDX` and `DatagridDXPagination` must be used within a React-Admin `<List>` (or any component providing a `ListContext`):
 
 ```tsx
 import React from 'react';
 import { Admin, Resource, List, type RaRecord } from 'react-admin';
 import { Column } from 'devextreme-react/data-grid';
-import { DatagridDX } from 'ra-devextreme-grid';
+import { DatagridDX, DatagridDXPagination } from 'ra-devextreme-grid';
 import 'devextreme/dist/css/dx.light.css';
 
 interface Customer extends RaRecord {
@@ -76,15 +77,28 @@ interface Customer extends RaRecord {
   name: string;
   company: string;
   city: string;
+  country: string;
 }
 
 export const CustomerList = () => (
-  <List>
+  <List
+    perPage={10}
+    sort={{ field: 'name', order: 'ASC' }}
+    pagination={
+      <DatagridDXPagination
+        allowedPageSizes={[5, 10, 25]}
+        showInfo={true}
+        showNavigationButtons={true}
+        showPageSizeSelector={true}
+      />
+    }
+  >
     <DatagridDX<Customer> showBorders={true} showRowLines={true}>
       <Column dataField="id" caption="ID" width={70} />
       <Column dataField="name" caption="Customer Name" />
       <Column dataField="company" caption="Company" />
       <Column dataField="city" caption="City" />
+      <Column dataField="country" caption="Country" />
     </DatagridDX>
   </List>
 );
@@ -98,10 +112,21 @@ export const App = () => (
 
 ### Key Architectural Contracts
 
-1. **Single Data Fetch Owner**: React-Admin's list controller owns all data fetching via `dataProvider.getList()`. `DatagridDX` consumes `ListContext` and never issues separate data queries.
-2. **Canonical Row Identity**: In React-Admin, `record.id` is the invariant identifier. DevExtreme `keyExpr` is locked to `"id"` internally. Both string and numeric identifiers are supported.
-3. **Loading States**: Initial pending state activates DevExtreme's native loading UI while suppressing premature "No data" messages. Background refetching preserves visible records without UI flicker.
-4. **Data-Shaping Safeguards**: In Phase 1, DevExtreme client-side paging and interactive column sorting are disabled to guarantee fidelity to server-ordered records until Phase 2 implements bidirectional synchronization.
+1. **Single Data Fetch Owner**: React-Admin's list controller owns all data fetching via `dataProvider.getList()`. `DatagridDX` and `DatagridDXPagination` consume `ListContext` and never issue independent network queries.
+2. **Standalone Pagination (`DatagridDXPagination`)**:
+   - DevExtreme `DataGrid`'s internal paging is permanently disabled (`paging.enabled = false`).
+   - Paging is rendered by the standalone `DatagridDXPagination` component placed in `<List pagination={<DatagridDXPagination />} />`.
+   - Maps 1-based `page` → `pageIndex`, `perPage` → `pageSize`, and `total` → `itemCount`.
+   - Changing page or page size dispatches React-Admin's `setPage` or `setPerPage` callbacks without redundant queries.
+   - **Known Limitation**: `DatagridDXPagination` requires a known `total` record count. When `total === undefined` or `null` (e.g. partial pagination), `DatagridDXPagination` renders `null` to avoid displaying misleading page counts.
+3. **Managed Single-Column Sorting**:
+   - `DatagridDX` managed mode supports **one React-Admin sort field at a time** (`{ field, order }`).
+   - Clicking an unsorted column sorts ascending; clicking an active sort column toggles ascending ↔ descending.
+   - Columns map to server sorting through their string `dataField`. Columns without a valid string `dataField` or with `allowSorting={false}` are excluded from sorting.
+   - Bidirectional synchronization updates visual indicators on external sort changes (e.g. URL navigation), and an internal feedback guard prevents circular updates.
+   - Multi-column sorting is reserved for the future remote mode adapter (`DatagridDXRemote` in Phase 5).
+4. **Canonical Row Identity**: In React-Admin, `record.id` is the invariant identifier. DevExtreme `keyExpr` is locked to `"id"` internally. Both string and numeric identifiers are supported.
+5. **Loading States**: Initial pending state activates DevExtreme's native loading UI while suppressing premature "No data" messages. Background refetching preserves visible records without UI flicker.
 
 ## Development Commands
 
@@ -120,7 +145,7 @@ pnpm build
 # Build the example application
 pnpm build:example
 
-# Run unit tests (Vitest + jsdom)
+# Run unit and integration tests (Vitest + jsdom)
 pnpm test
 
 # Run TypeScript type check
@@ -140,10 +165,10 @@ pnpm format
 
 - **Phase 0 (Completed)**: Repository Foundation, Vite library bundling, TypeScript declarations, peer externalization, Vitest testing suite, interactive demo, CI pipeline.
 - **Phase 1 (Completed)**: Read-Only Managed Grid (`<List><DatagridDX /></List>`, React-Admin `ListContext` consumption, `record.id` canonical keying, data-shaping safeguards).
-- **Phase 2 (Next)**: Managed Paging and Single/Multi-Column Sorting.
-- **Phase 3**: Row Selection (`selectedIds`, `onSelect`) and Row Click Navigation.
+- **Phase 2 (Completed)**: Managed Paging and Single-Column Server Sorting (`DatagridDXPagination`, bidirectional single-column server sorting, feedback-loop guard).
+- **Phase 3 (Next)**: Row Selection (`selectedIds`, `onSelect`) and Row Click Navigation.
 - **Phase 4**: Managed Filtering and Grid UX (Filter Row, Header Filter, Column Chooser).
-- **Phase 5**: Remote Mode Foundation (`DatagridDXRemote`, `CustomStore`, `dataProvider.getGrid()`).
+- **Phase 5**: Remote Mode Foundation (`DatagridDXRemote`, `CustomStore`, `dataProvider.getGrid()`, multi-column remote sorting).
 - **Phase 6+**: Python Reference Backend (FastAPI, SQLModel, UV).
 
 ## License & Disclaimers

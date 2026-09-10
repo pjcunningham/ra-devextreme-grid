@@ -11,6 +11,22 @@ if (typeof customElements !== 'undefined') {
   };
 }
 
+// Fix JSDOM AbortSignal mismatch with Node.js undici Request
+const OriginalRequest = globalThis.Request;
+if (OriginalRequest) {
+  globalThis.Request = class PatchedRequest extends OriginalRequest {
+    constructor(input: RequestInfo | URL, init?: RequestInit) {
+      if (init && 'signal' in init) {
+        const restInit = { ...init };
+        delete (restInit as { signal?: unknown }).signal;
+        super(input, restInit);
+      } else {
+        super(input, init);
+      }
+    }
+  };
+}
+
 // Polyfill window.matchMedia for DevExtreme responsive checks in jsdom
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

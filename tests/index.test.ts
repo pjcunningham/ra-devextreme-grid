@@ -6,4 +6,9 @@ describe('ra-devextreme-grid public entry point', () => {
     expect(pkg.DatagridDX).toBeDefined();
     expect(['function', 'object']).toContain(typeof pkg.DatagridDX);
   });
+
+  it('exports DatagridDXPagination component', () => {
+    expect(pkg.DatagridDXPagination).toBeDefined();
+    expect(['function', 'object']).toContain(typeof pkg.DatagridDXPagination);
+  });
 });

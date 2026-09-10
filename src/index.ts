@@ -1,2 +1,3 @@
 export { DatagridDX } from './DatagridDX';
-export type { DatagridDXProps } from './types';
+export { DatagridDXPagination } from './DatagridDXPagination';
+export type { DatagridDXProps, DatagridDXPaginationProps } from './types';

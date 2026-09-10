@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act, waitFor } from '@testing-library/react';
 import { createRef } from 'react';
 import { Column, type DataGridRef } from 'devextreme-react/data-grid';
 import {
@@ -10,7 +10,7 @@ import {
   type ListControllerResult,
   type RaRecord,
 } from 'react-admin';
-import { DatagridDX, type DatagridDXProps } from '../src/index';
+import { DatagridDX } from '../src/index';
 
 function createMockListContext<RecordType extends RaRecord = RaRecord>(
   overrides?: Partial<ListControllerResult<RecordType>>
@@ -284,21 +284,21 @@ describe('DatagridDX component (Phase 1 Managed Grid)', () => {
     expect(getListSpy).toHaveBeenCalledWith('customers', expect.anything());
   });
 
-  it('Scenario J: enforces data-shaping safeguards (paging.enabled = false, sorting.mode = "none")', () => {
+  it('Scenario J: enforces data-shaping safeguards (paging.enabled = false, sorting.mode = "single")', () => {
     const contextValue = createMockListContext<Customer>({
       data: [{ id: 1, name: 'Safeguard Test', email: 'safe@example.com' }],
       total: 1,
     });
     const gridRef = createRef<DataGridRef<Customer, number>>();
 
+    const overrideProps = {
+      paging: { enabled: true },
+      sorting: { mode: 'multiple' },
+    } as unknown as Record<string, unknown>;
+
     render(
       <ListContextProvider value={contextValue}>
-        <DatagridDX<Customer>
-          ref={gridRef}
-          // Attempt user override to verify adapter precedence
-          paging={{ enabled: true } as unknown as DatagridDXProps['paging']}
-          sorting={{ mode: 'single' } as unknown as DatagridDXProps['sorting']}
-        >
+        <DatagridDX<Customer> ref={gridRef} {...overrideProps}>
           <Column dataField="name" caption="Name" />
         </DatagridDX>
       </ListContextProvider>
@@ -306,7 +306,7 @@ describe('DatagridDX component (Phase 1 Managed Grid)', () => {
 
     const instance = gridRef.current?.instance();
     expect(instance?.option('paging.enabled')).toBe(false);
-    expect(instance?.option('sorting.mode')).toBe('none');
+    expect(instance?.option('sorting.mode')).toBe('single');
   });
 
   it('exposes imperative instance via forwarded ref', () => {
@@ -339,5 +339,410 @@ describe('DatagridDX component (Phase 1 Managed Grid)', () => {
     }).toThrow(/useListContext must be used inside a ListContextProvider/);
 
     spy.mockRestore();
+  });
+});
+
+describe('DatagridDX managed single-column sorting (Phase 2)', () => {
+  it('Scenario H: renders ascending sort indicator when context sort is ASC', async () => {
+    const contextValue = createMockListContext<Customer>({
+      data: [{ id: 1, name: 'Alice', email: 'alice@example.com' }],
+      total: 1,
+      sort: { field: 'name', order: 'ASC' },
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    const { container } = render(
+      <ListContextProvider value={contextValue}>
+        <DatagridDX<Customer> ref={gridRef}>
+          <Column dataField="name" caption="Name" />
+          <Column dataField="email" caption="Email" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    expect(await screen.findByText('Alice')).toBeInTheDocument();
+    const instance = gridRef.current?.instance();
+    expect(instance?.columnOption('name', 'sortOrder')).toBe('asc');
+    expect(
+      container.querySelector(
+        '.dx-header-row td.dx-sort-up, .dx-header-row td .dx-sort-up, .dx-header-row td[aria-sort="ascending"]'
+      )
+    ).not.toBeNull();
+  });
+
+  it('Scenario I: renders descending sort indicator when context sort is DESC', async () => {
+    const contextValue = createMockListContext<Customer>({
+      data: [{ id: 1, name: 'Alice', email: 'alice@example.com' }],
+      total: 1,
+      sort: { field: 'name', order: 'DESC' },
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    const { container } = render(
+      <ListContextProvider value={contextValue}>
+        <DatagridDX<Customer> ref={gridRef}>
+          <Column dataField="name" caption="Name" />
+          <Column dataField="email" caption="Email" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    expect(await screen.findByText('Alice')).toBeInTheDocument();
+    const instance = gridRef.current?.instance();
+    expect(instance?.columnOption('name', 'sortOrder')).toBe('desc');
+    expect(
+      container.querySelector(
+        '.dx-header-row td.dx-sort-down, .dx-header-row td .dx-sort-down, .dx-header-row td[aria-sort="descending"]'
+      )
+    ).not.toBeNull();
+  });
+
+  it('Scenario J: user clicking unsorted column calls setSort({ field, order: "ASC" }) once', () => {
+    const setSort = vi.fn();
+    const contextValue = createMockListContext<Customer>({
+      data: [{ id: 1, name: 'Alice', email: 'alice@example.com' }],
+      total: 1,
+      sort: { field: 'name', order: 'ASC' },
+      setSort,
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    render(
+      <ListContextProvider value={contextValue}>
+        <DatagridDX<Customer> ref={gridRef}>
+          <Column dataField="name" caption="Name" />
+          <Column dataField="email" caption="Email" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    const instance = gridRef.current?.instance();
+    expect(instance).toBeDefined();
+
+    // Trigger sort on unsorted column 'email' (index 1)
+    act(() => {
+      instance?.columnOption(1, 'sortOrder', 'asc');
+    });
+
+    expect(setSort).toHaveBeenCalledTimes(1);
+    expect(setSort).toHaveBeenCalledWith({ field: 'email', order: 'ASC' });
+  });
+
+  it('Scenario K: user clicking already-sorted column toggles direction to DESC', () => {
+    const setSort = vi.fn();
+    const contextValue = createMockListContext<Customer>({
+      data: [{ id: 1, name: 'Alice', email: 'alice@example.com' }],
+      total: 1,
+      sort: { field: 'name', order: 'ASC' },
+      setSort,
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    render(
+      <ListContextProvider value={contextValue}>
+        <DatagridDX<Customer> ref={gridRef}>
+          <Column dataField="name" caption="Name" />
+          <Column dataField="email" caption="Email" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    const instance = gridRef.current?.instance();
+    expect(instance).toBeDefined();
+
+    // Trigger toggle on column 'name' (index 0) from asc to desc
+    act(() => {
+      instance?.columnOption(0, 'sortOrder', 'desc');
+    });
+
+    expect(setSort).toHaveBeenCalledTimes(1);
+    expect(setSort).toHaveBeenCalledWith({ field: 'name', order: 'DESC' });
+  });
+
+  it('Scenario L: external sort change in React-Admin updates DevExtreme column indicator without calling setSort', () => {
+    const setSort = vi.fn();
+    const initialContext = createMockListContext<Customer>({
+      data: [{ id: 1, name: 'Alice', email: 'alice@example.com' }],
+      total: 1,
+      sort: { field: 'name', order: 'ASC' },
+      setSort,
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    const { rerender } = render(
+      <ListContextProvider value={initialContext}>
+        <DatagridDX<Customer> ref={gridRef}>
+          <Column dataField="name" caption="Name" />
+          <Column dataField="email" caption="Email" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    const instance = gridRef.current?.instance();
+    expect(instance?.columnOption('name', 'sortOrder')).toBe('asc');
+    expect(instance?.columnOption('email', 'sortOrder')).toBeUndefined();
+    expect(setSort).not.toHaveBeenCalled();
+
+    // External change (e.g. URL update or external sort control)
+    const updatedContext = createMockListContext<Customer>({
+      data: [{ id: 1, name: 'Alice', email: 'alice@example.com' }],
+      total: 1,
+      sort: { field: 'email', order: 'DESC' },
+      setSort,
+    });
+
+    rerender(
+      <ListContextProvider value={updatedContext}>
+        <DatagridDX<Customer> ref={gridRef}>
+          <Column dataField="name" caption="Name" />
+          <Column dataField="email" caption="Email" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    expect(instance?.columnOption('name', 'sortOrder')).toBeUndefined();
+    expect(instance?.columnOption('email', 'sortOrder')).toBe('desc');
+    // Crucial: programmatic update must NOT cause setSort to fire!
+    expect(setSort).not.toHaveBeenCalled();
+  });
+
+  it('Scenario M: single-column constraint ensures only one column is actively sorted', () => {
+    const contextValue = createMockListContext<Customer>({
+      data: [{ id: 1, name: 'Alice', email: 'alice@example.com' }],
+      total: 1,
+      sort: { field: 'email', order: 'ASC' },
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    render(
+      <ListContextProvider value={contextValue}>
+        <DatagridDX<Customer> ref={gridRef}>
+          <Column dataField="id" caption="ID" />
+          <Column dataField="name" caption="Name" />
+          <Column dataField="email" caption="Email" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    const instance = gridRef.current?.instance();
+    expect(instance?.option('sorting.mode')).toBe('single');
+
+    const columnSortOrders = [0, 1, 2]
+      .map((i) => instance?.columnOption(i, 'sortOrder'))
+      .filter(Boolean);
+
+    expect(columnSortOrders).toEqual(['asc']);
+  });
+
+  it('Scenario N: non-sortable column (allowSorting = false) does not trigger setSort', () => {
+    const setSort = vi.fn();
+    const contextValue = createMockListContext<Customer>({
+      data: [{ id: 1, name: 'Alice', email: 'alice@example.com' }],
+      total: 1,
+      sort: { field: 'name', order: 'ASC' },
+      setSort,
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    render(
+      <ListContextProvider value={contextValue}>
+        <DatagridDX<Customer> ref={gridRef}>
+          <Column dataField="name" caption="Name" />
+          <Column dataField="email" caption="Email" allowSorting={false} />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    const instance = gridRef.current?.instance();
+
+    act(() => {
+      instance?.columnOption(1, 'sortOrder', 'asc');
+    });
+
+    expect(setSort).not.toHaveBeenCalled();
+  });
+
+  it('Scenario O: column without valid dataField does not trigger setSort', () => {
+    const setSort = vi.fn();
+    const contextValue = createMockListContext<Customer>({
+      data: [{ id: 1, name: 'Alice', email: 'alice@example.com' }],
+      total: 1,
+      sort: { field: 'name', order: 'ASC' },
+      setSort,
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    render(
+      <ListContextProvider value={contextValue}>
+        <DatagridDX<Customer> ref={gridRef}>
+          <Column dataField="name" caption="Name" />
+          <Column caption="Actions" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    const instance = gridRef.current?.instance();
+
+    act(() => {
+      instance?.columnOption(1, 'sortOrder', 'asc');
+    });
+
+    expect(setSort).not.toHaveBeenCalled();
+  });
+
+  it('Scenario P: consumer onOptionChanged runs alongside internal sort handler and receives original event', () => {
+    const setSort = vi.fn();
+    const onOptionChanged = vi.fn();
+    const contextValue = createMockListContext<Customer>({
+      data: [{ id: 1, name: 'Alice', email: 'alice@example.com' }],
+      total: 1,
+      sort: { field: 'name', order: 'ASC' },
+      setSort,
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    render(
+      <ListContextProvider value={contextValue}>
+        <DatagridDX<Customer> ref={gridRef} onOptionChanged={onOptionChanged}>
+          <Column dataField="name" caption="Name" />
+          <Column dataField="email" caption="Email" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    const instance = gridRef.current?.instance();
+
+    act(() => {
+      instance?.columnOption(1, 'sortOrder', 'asc');
+    });
+
+    expect(setSort).toHaveBeenCalledWith({ field: 'email', order: 'ASC' });
+    expect(onOptionChanged).toHaveBeenCalled();
+    const eventArg = onOptionChanged.mock.calls[0]?.[0];
+    expect(eventArg).toHaveProperty('component');
+    expect(eventArg).toHaveProperty('name');
+  });
+
+  it('Scenario Q: feedback-loop guard prevents recursive setSort calls', () => {
+    const setSort = vi.fn();
+    const contextValue = createMockListContext<Customer>({
+      data: [{ id: 1, name: 'Alice', email: 'alice@example.com' }],
+      total: 1,
+      sort: { field: 'name', order: 'ASC' },
+      setSort,
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    const { rerender } = render(
+      <ListContextProvider value={contextValue}>
+        <DatagridDX<Customer> ref={gridRef}>
+          <Column dataField="name" caption="Name" />
+          <Column dataField="email" caption="Email" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    expect(setSort).not.toHaveBeenCalled();
+
+    // Re-render multiple times with the same sort
+    rerender(
+      <ListContextProvider value={{ ...contextValue }}>
+        <DatagridDX<Customer> ref={gridRef}>
+          <Column dataField="name" caption="Name" />
+          <Column dataField="email" caption="Email" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    rerender(
+      <ListContextProvider value={{ ...contextValue }}>
+        <DatagridDX<Customer> ref={gridRef}>
+          <Column dataField="name" caption="Name" />
+          <Column dataField="email" caption="Email" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    expect(setSort).not.toHaveBeenCalled();
+  });
+
+  it('Server-Order Invariant: grid renders records in the exact order supplied by React-Admin ListContext', async () => {
+    // Initial page of records from server: order is [Zoe, Adam] (e.g. sorted by a different server rule)
+    const initialRecords: Customer[] = [
+      { id: 1, name: 'Zoe', email: 'zoe@example.com' },
+      { id: 2, name: 'Adam', email: 'adam@example.com' },
+    ];
+    const initialContext = createMockListContext<Customer>({
+      data: initialRecords,
+      total: 2,
+      sort: { field: 'id', order: 'ASC' },
+    });
+
+    const { rerender, container } = render(
+      <ListContextProvider value={initialContext}>
+        <DatagridDX<Customer>>
+          <Column dataField="name" caption="Name" />
+          <Column dataField="email" caption="Email" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    expect(await screen.findByText('Zoe')).toBeInTheDocument();
+    expect(await screen.findByText('Adam')).toBeInTheDocument();
+
+    const rows = container.querySelectorAll('.dx-data-row td:first-child');
+    expect(rows[0]?.textContent).toBe('Zoe');
+    expect(rows[1]?.textContent).toBe('Adam');
+
+    // Server responds with new sorted page: order is [Adam, Zoe]
+    const sortedRecords: Customer[] = [
+      { id: 2, name: 'Adam', email: 'adam@example.com' },
+      { id: 1, name: 'Zoe', email: 'zoe@example.com' },
+    ];
+    const updatedContext = createMockListContext<Customer>({
+      data: sortedRecords,
+      total: 2,
+      sort: { field: 'name', order: 'ASC' },
+    });
+
+    rerender(
+      <ListContextProvider value={updatedContext}>
+        <DatagridDX<Customer>>
+          <Column dataField="name" caption="Name" />
+          <Column dataField="email" caption="Email" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    await waitFor(() => {
+      const updatedRows = container.querySelectorAll('.dx-data-row td:first-child');
+      expect(updatedRows[0]?.textContent).toBe('Adam');
+      expect(updatedRows[1]?.textContent).toBe('Zoe');
+    });
+  });
+
+  it('handles context sort on a field that is not rendered as a column gracefully', () => {
+    const contextValue = createMockListContext<Customer>({
+      data: [{ id: 1, name: 'Alice', email: 'alice@example.com' }],
+      total: 1,
+      // Sort by a field that is not rendered
+      sort: { field: 'nonExistentField', order: 'ASC' },
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    expect(() => {
+      render(
+        <ListContextProvider value={contextValue}>
+          <DatagridDX<Customer> ref={gridRef}>
+            <Column dataField="name" caption="Name" />
+            <Column dataField="email" caption="Email" />
+          </DatagridDX>
+        </ListContextProvider>
+      );
+    }).not.toThrow();
+
+    const instance = gridRef.current?.instance();
+    expect(instance?.columnOption(0, 'sortOrder')).toBeUndefined();
+    expect(instance?.columnOption(1, 'sortOrder')).toBeUndefined();
   });
 });
