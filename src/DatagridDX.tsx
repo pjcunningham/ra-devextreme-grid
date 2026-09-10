@@ -1,25 +1,61 @@
-import React from 'react';
-import DataGrid from 'devextreme-react/data-grid';
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  type ForwardedRef,
+  type ReactElement,
+} from 'react';
+import { DataGrid, type DataGridRef } from 'devextreme-react/data-grid';
+import { useListContext, type RaRecord } from 'react-admin';
 import type { DatagridDXProps } from './types';
 
+const DEFAULT_EMPTY_ARRAY: never[] = [];
+
 /**
- * Proof-of-installation DatagridDX component bridging React-Admin and DevExtreme DataGrid.
+ * Managed DatagridDX component bridging React-Admin and DevExtreme DataGrid.
  *
- * For Phase 0, this component renders static data and passes through native
- * DevExtreme DataGrid options and child columns without prematurely coupling to
- * React-Admin ListContext.
+ * Consumes records and loading state from React-Admin's ListContext.
+ * Row keys are locked to canonical `record.id`. DevExtreme client-side
+ * paging and sorting are disabled to preserve server-ordered page fidelity.
  */
-export function DatagridDX<RecordType = Record<string, unknown>, KeyType = unknown>({
-  data,
-  dataSource,
-  children,
-  ...restProps
-}: DatagridDXProps<RecordType, KeyType>): React.JSX.Element {
-  const resolvedDataSource = data ?? dataSource;
+export const DatagridDX = forwardRef(function DatagridDX<RecordType extends RaRecord = RaRecord>(
+  props: DatagridDXProps<RecordType>,
+  ref: ForwardedRef<DataGridRef<RecordType, RecordType['id']>>
+) {
+  const { data, isPending, isFetching } = useListContext<RecordType>();
+  const innerRef = useRef<DataGridRef<RecordType, RecordType['id']> | null>(null);
+
+  useImperativeHandle(ref, () => innerRef.current as DataGridRef<RecordType, RecordType['id']>);
+
+  useEffect(() => {
+    const grid = innerRef.current?.instance();
+    if (!grid) return;
+
+    if (isPending || isFetching) {
+      grid.beginCustomLoading('');
+    } else {
+      grid.endCustomLoading();
+    }
+  }, [isPending, isFetching]);
+
+  const { children, noDataText, ...restProps } = props;
 
   return (
-    <DataGrid dataSource={resolvedDataSource} {...restProps}>
+    <DataGrid<RecordType, RecordType['id']>
+      ref={innerRef}
+      keyExpr="id"
+      {...restProps}
+      dataSource={data ?? DEFAULT_EMPTY_ARRAY}
+      noDataText={isPending ? '' : (noDataText ?? 'No data')}
+      paging={{ enabled: false }}
+      sorting={{ mode: 'none' }}
+    >
       {children}
     </DataGrid>
   );
-}
+}) as <RecordType extends RaRecord = RaRecord>(
+  props: DatagridDXProps<RecordType> & {
+    ref?: ForwardedRef<DataGridRef<RecordType, RecordType['id']>>;
+  }
+) => ReactElement | null;

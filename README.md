@@ -5,15 +5,23 @@
 [![CI](https://github.com/pjcunningham/ra-devextreme-grid/actions/workflows/ci.yml/badge.svg)](https://github.com/pjcunningham/ra-devextreme-grid/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Status: Early Development
+## Status: Early Development (Phase 1 Implemented)
 
-`ra-devextreme-grid` is currently under active early development and is **not yet production-ready**. The repository has established Phase 0 (Repository Foundation & Toolchain). Future phases will introduce managed `ListContext` integration, paging, sorting, selection, and remote operations mode.
+`ra-devextreme-grid` is currently under active early development and is **not yet production-ready**.
+
+The repository has implemented **Phase 1: Read-Only Managed Grid**. In this phase:
+
+- `DatagridDX` is a managed React-Admin grid component used inside `<List>`.
+- React-Admin owns record fetching via `useListContext<RecordType>()`.
+- DevExtreme DataGrid renders records without reshaping them.
+- Row identity is locked to canonical `record.id`.
+- Data-shaping safeguards are enforced: DevExtreme client-side paging is disabled (`paging.enabled = false`) and interactive sorting is disabled (`sorting.mode = "none"`) to prevent desynchronization with server-ordered pages until Phase 2.
 
 ## Overview & Purpose
 
 The goal of `ra-devextreme-grid` is to provide a first-class, reusable integration between [React-Admin](https://marmelab.com/react-admin/) and the [DevExpress DevExtreme React DataGrid](https://js.devexpress.com/React/Documentation/Guide/UI_Components/DataGrid/Getting_Started_with_DataGrid/).
 
-React-Admin provides robust application-level capabilities including resource routing, authentication, authorization, notifications, and form/record contexts. DevExtreme DataGrid provides high-performance grid features such as complex grouping, multi-column sorting, advanced filtering, and server-side data processing. `ra-devextreme-grid` bridges both worlds cleanly.
+React-Admin provides robust application-level capabilities including resource routing, authentication, authorization, notifications, and list/record controllers. DevExtreme DataGrid provides high-performance grid features such as complex grouping, multi-column sorting, advanced filtering, and server-side data processing. `ra-devextreme-grid` bridges both worlds cleanly.
 
 ## DevExtreme Theme & Styling
 
@@ -49,40 +57,51 @@ Supported peer ranges:
 - `react`: `^18.0.0 || ^19.0.0`
 - `react-dom`: `^18.0.0 || ^19.0.0`
 - `react-admin`: `^5.0.0`
-- `devextreme`: `^24.0.0 || ^25.0.0 || ^26.0.0`
-- `devextreme-react`: `^24.0.0 || ^25.0.0 || ^26.0.0`
+- `devextreme`: `^26.1.0`
+- `devextreme-react`: `^26.1.0`
 
-## Minimal Example
+## Usage Example
 
-Below is a minimal example demonstrating `DatagridDX` with static records:
+`DatagridDX` must be used within a React-Admin `<List>` (or any component providing a `ListContext`):
 
 ```tsx
 import React from 'react';
+import { Admin, Resource, List, type RaRecord } from 'react-admin';
 import { Column } from 'devextreme-react/data-grid';
 import { DatagridDX } from 'ra-devextreme-grid';
 import 'devextreme/dist/css/dx.light.css';
 
-interface Customer {
+interface Customer extends RaRecord {
   id: number;
   name: string;
+  company: string;
   city: string;
 }
 
-const customers: Customer[] = [
-  { id: 1, name: 'Alice Smith', city: 'New York' },
-  { id: 2, name: 'Bob Jones', city: 'London' },
-];
-
-export function CustomerList() {
-  return (
-    <DatagridDX<Customer> data={customers} keyExpr="id" showBorders={true}>
-      <Column dataField="id" caption="ID" width={80} />
-      <Column dataField="name" caption="Name" />
+export const CustomerList = () => (
+  <List>
+    <DatagridDX<Customer> showBorders={true} showRowLines={true}>
+      <Column dataField="id" caption="ID" width={70} />
+      <Column dataField="name" caption="Customer Name" />
+      <Column dataField="company" caption="Company" />
       <Column dataField="city" caption="City" />
     </DatagridDX>
-  );
-}
+  </List>
+);
+
+export const App = () => (
+  <Admin dataProvider={dataProvider}>
+    <Resource name="customers" list={CustomerList} />
+  </Admin>
+);
 ```
+
+### Key Architectural Contracts
+
+1. **Single Data Fetch Owner**: React-Admin's list controller owns all data fetching via `dataProvider.getList()`. `DatagridDX` consumes `ListContext` and never issues separate data queries.
+2. **Canonical Row Identity**: In React-Admin, `record.id` is the invariant identifier. DevExtreme `keyExpr` is locked to `"id"` internally. Both string and numeric identifiers are supported.
+3. **Loading States**: Initial pending state activates DevExtreme's native loading UI while suppressing premature "No data" messages. Background refetching preserves visible records without UI flicker.
+4. **Data-Shaping Safeguards**: In Phase 1, DevExtreme client-side paging and interactive column sorting are disabled to guarantee fidelity to server-ordered records until Phase 2 implements bidirectional synchronization.
 
 ## Development Commands
 
@@ -119,9 +138,9 @@ pnpm format
 
 ## Implementation Roadmap
 
-- **Phase 0 (Current)**: Repository Foundation, Vite library bundling, TypeScript declarations, peer externalization, Vitest testing suite, interactive demo, CI pipeline.
-- **Phase 1**: Read-Only Managed Grid (`<List><DatagridDX /></List>`, React-Admin `ListContext` consumption).
-- **Phase 2**: Managed Paging and Single/Multi-Column Sorting.
+- **Phase 0 (Completed)**: Repository Foundation, Vite library bundling, TypeScript declarations, peer externalization, Vitest testing suite, interactive demo, CI pipeline.
+- **Phase 1 (Completed)**: Read-Only Managed Grid (`<List><DatagridDX /></List>`, React-Admin `ListContext` consumption, `record.id` canonical keying, data-shaping safeguards).
+- **Phase 2 (Next)**: Managed Paging and Single/Multi-Column Sorting.
 - **Phase 3**: Row Selection (`selectedIds`, `onSelect`) and Row Click Navigation.
 - **Phase 4**: Managed Filtering and Grid UX (Filter Row, Header Filter, Column Chooser).
 - **Phase 5**: Remote Mode Foundation (`DatagridDXRemote`, `CustomStore`, `dataProvider.getGrid()`).

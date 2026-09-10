@@ -27,8 +27,8 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "devextreme": "^24.0.0 || ^25.0.0 || ^26.0.0",
-    "devextreme-react": "^24.0.0 || ^25.0.0 || ^26.0.0",
+    "devextreme": "^26.1.0",
+    "devextreme-react": "^26.1.0",
     "react": "^18.0.0 || ^19.0.0",
     "react-admin": "^5.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"

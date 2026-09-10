@@ -16,6 +16,6 @@ export default tsPlugin.config(
   },
   prettierConfig,
   {
-    ignores: ['dist/**', 'node_modules/**', '.junie/**', 'coverage/**'],
+    ignores: ['dist/**', 'dist-example/**', 'node_modules/**', '.junie/**', 'coverage/**'],
   }
 );
