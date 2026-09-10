@@ -5,22 +5,22 @@
 [![CI](https://github.com/pjcunningham/ra-devextreme-grid/actions/workflows/ci.yml/badge.svg)](https://github.com/pjcunningham/ra-devextreme-grid/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Status: Early Development (Phase 4A Implemented)
+## Status: Early Development (Phase 4B Implemented)
 
 `ra-devextreme-grid` is currently under active early development and is **not yet production-ready**.
 
-The repository has implemented **Phase 4A: Managed React-Admin Filtering with DevExtreme Filter Row**. In this phase:
+The repository has implemented **Phase 4B: Managed Grid UX**. In this phase:
 
-- `DatagridDX` provides native DevExtreme Filter Row UI with React-Admin `ListContext` (`filterValues` and `setFilters()`) as the sole authoritative filter state owner.
-- Filtering is opt-in via `<DatagridDX filtering />` or `<DatagridDX filtering={options} />`, with presentation options configurable through `DatagridDXFilterRowOptions`.
-- Default translation maps DevExtreme operators to React-Admin flat filter suffixes (`_eq`, `_neq`, `_gt`, `_gte`, `_lt`, `_lte`, `_q`, and range `between`).
-- Suffix parsing uses end-anchored regular expressions to fully support field names containing underscores (e.g. `company_name_q`, `created_at_gte`).
-- Plain React-Admin fields without suffixes map to equality when matching a valid grid column.
-- Bidirectional synchronization with deep semantic equality checking (`isFilterValueEqual`) and sync locks prevents feedback render loops.
-- External/unrelated React-Admin filters (such as global `q` or backend flags) are strictly preserved when grid filters are modified or cleared.
-- Filter dispatches engage React-Admin v5 debouncing (`setFilters(..., ..., true)`), and React-Admin automatically resets pagination to page 1.
-- Custom conversion callbacks (`getRaFilters` and `getDxFilterValue`) provide public escape hatches for non-standard backend query syntaxes.
-- Coexistence with single-column server sorting, cross-page selection persistence, and row navigation is fully verified.
+- `DatagridDX` supports safe, client-side presentation and column-management capabilities: **Column Chooser**, **column resizing**, **column reordering**, **column fixing/pinning**, and **adaptive column hiding / responsive layout**.
+- Features operate directly via native DevExtreme props (`allowColumnResizing`, `allowColumnReordering`, `columnAutoWidth`, `columnChooser`, `columnFixing`, `columnHidingEnabled`) without requiring artificial adapter wrapper objects.
+- Strictly adheres to the core architectural invariant: **React-Admin owns list/query state. DevExtreme may own purely visual column state.**
+- Column management actions (resize, reorder, hide, fix) operate purely as client-side visual state and do not mutate React-Admin filters, sorting, pagination, or row selection.
+- Actively filtered columns remain filtered in React-Admin when hidden via the Column Chooser; their Filter Row UI restores when unhidden.
+- Actively sorted columns remain sorted in React-Admin when hidden; sort indicators restore when unhidden.
+- Adaptive command column clicks (expand/collapse chevrons) and adaptive detail rows (`detailAdaptive`) are protected against accidental row navigation when `rowClick="edit"` or `rowClick="show"` is enabled.
+- Column fixing coexists cleanly with managed multi-row cross-page selection.
+- The misleading internal Phase 4A `remoteOperations={{ filtering: true }}` flag was removed; managed filtering operates cleanly with React-Admin filtering the dataset and DevExtreme locally reapplying `filterValue` to the current page. Native `remoteOperations` remains omitted from `DatagridDXProps`.
+- Native `stateStoring` is intentionally **omitted** from `DatagridDXProps` to prevent competing state ownership. Column visual state is component-instance / session-only (persisting state is deferred to Phase 9).
 
 ## Overview & Purpose
 
@@ -103,12 +103,29 @@ export const CustomerList = () => (
       rowClick="edit"
       showBorders={true}
       showRowLines={true}
+      allowColumnResizing={true}
+      allowColumnReordering={true}
+      columnAutoWidth={true}
+      columnChooser={{
+        enabled: true,
+        mode: 'select',
+        search: {
+          enabled: true,
+        },
+      }}
+      columnFixing={{
+        enabled: true,
+      }}
+      columnHidingEnabled={true}
     >
       <Column
         dataField="id"
         caption="ID"
         width={70}
         dataType="number"
+        allowHiding={false}
+        fixed={true}
+        fixedPosition="left"
         filterOperations={['=', '<>', '>', '>=', '<', '<=', 'between']}
         selectedFilterOperation="="
       />
@@ -116,6 +133,7 @@ export const CustomerList = () => (
         dataField="name"
         caption="Customer Name"
         dataType="string"
+        hidingPriority={3}
         filterOperations={['contains', '=', '<>']}
         selectedFilterOperation="contains"
       />
@@ -123,6 +141,7 @@ export const CustomerList = () => (
         dataField="company"
         caption="Company"
         dataType="string"
+        hidingPriority={1}
         filterOperations={['contains', '=', '<>']}
         selectedFilterOperation="contains"
       />
@@ -130,6 +149,7 @@ export const CustomerList = () => (
         dataField="city"
         caption="City"
         dataType="string"
+        hidingPriority={0}
         filterOperations={['contains', '=', '<>']}
         selectedFilterOperation="contains"
       />
@@ -137,6 +157,7 @@ export const CustomerList = () => (
         dataField="country"
         caption="Country"
         dataType="string"
+        hidingPriority={2}
         filterOperations={['contains', '=', '<>']}
         selectedFilterOperation="contains"
       />
@@ -202,6 +223,24 @@ export const App = () => (
    - Multi-column sorting is reserved for the future remote mode adapter (`DatagridDXRemote` in Phase 5).
 7. **Canonical Row Identity**: In React-Admin, `record.id` is the invariant identifier. DevExtreme `keyExpr` is locked to `"id"` internally. Both string and numeric identifiers are supported.
 8. **Loading States**: Initial pending state activates DevExtreme's native loading UI while suppressing premature "No data" messages. Background refetching preserves visible records without UI flicker.
+9. **Safe Column Management & Presentation UX**:
+   - **Direct DevExtreme Prop Passthrough**: Features such as Column Chooser (`columnChooser`), column resizing (`allowColumnResizing`, `columnResizingMode`, `columnMinWidth`, `columnAutoWidth`), column reordering (`allowColumnReordering`), column fixing (`columnFixing`), and adaptive hiding (`columnHidingEnabled`) are configured directly via native DevExtreme props without artificial adapter wrappers.
+   - **Query State Isolation**: DevExtreme visual column changes (`visible`, `visibleIndex`, `width`, `fixed`, `fixedPosition`) are client-side presentation state only. They do not trigger React-Admin network requests, page resets, sorting changes, filter modifications, or selection drops.
+   - **Hidden Filtered Columns**: When a column with an active filter is hidden via the Column Chooser, the filter remains active in React-Admin's `filterValues`. When shown again, the Filter Row UI restores the active filter editor.
+   - **Hidden Sorted Columns**: When an active sort column is hidden, React-Admin's `sort` remains unchanged. When shown again, the sort indicator is restored.
+   - **Non-Hideable Columns**: Setting `allowHiding={false}` on `<Column>` prevents that column from being hidden in the Column Chooser.
+   - **Adaptive Command Navigation Guard**: Responsive layouts render an adaptive command column with expand/collapse buttons (`.dx-command-adaptive`, `.dx-datagrid-adaptive-more`) and adaptive detail rows (`rowType === 'detailAdaptive'`). These are strictly guarded to ensure clicking expand/collapse chevrons or detail rows does not trigger React-Admin row navigation (`useRedirect`).
+   - **Column Fixing & Selection Coexistence**: Pinned/fixed columns operate cleanly alongside managed multi-row cross-page selection checkboxes.
+   - **Session/Instance-Only Lifetime**: Column visual state is preserved while the component remains mounted. Loss of unsaved visual state on page reload or remount is expected in this phase.
+   - **State Persistence Omission Warning**: Native DevExtreme `stateStoring` is intentionally **omitted** from `DatagridDXProps`. Enabling native `stateStoring` in managed mode would create competing state ownership with React-Admin (which already owns filters, selections, paging, and sorting). Visual state persistence will be addressed deliberately in Phase 9.
+   - **Unsupported Managed Features**: Managed mode (`DatagridDX`) does NOT support features whose semantics conflict with a server-paged list:
+     - **Header Filter**: Requires remote distinct values across the entire dataset.
+     - **DataGrid Search Panel**: Local array evaluation only; React-Admin external search UI is preferred.
+     - **Filter Builder & Filter Panel**: Nested Boolean expressions cannot map cleanly to flat React-Admin filter objects.
+     - **Grouping (`grouping`, `groupPanel`)**: Grouping an array of current-page records groups only the current page slice, not the entire dataset.
+     - **Summaries (`summary`)**: Aggregations evaluate only over current page records.
+     - **Inline Editing**: Deferred to Phase 10.
+     - **DevExtreme Remote Operations**: Deferred to Phase 5 (`DatagridDXRemote`).
 
 ## Development Commands
 
@@ -243,9 +282,11 @@ pnpm format
 - **Phase 2 (Completed)**: Managed Paging and Single-Column Server Sorting (`DatagridDXPagination`, bidirectional single-column server sorting, feedback-loop guard).
 - **Phase 3 (Completed)**: Row Selection (`selectedIds`, `onSelect`) and Row Click Navigation (`rowClick="edit" | "show" | false`).
 - **Phase 4A (Completed)**: Managed React-Admin Filtering with DevExtreme Filter Row (`DatagridDX filtering`, translation layer, bidirectional synchronization, underscore parsing, external filter preservation).
-- **Phase 4B (Next: Grid UX)**: Column Chooser, column resizing, column reordering, column pinning/fixing, and state persistence.
+- **Phase 4B (Completed)**: Managed Grid UX (Column Chooser, column resizing, column reordering, column fixing/pinning, adaptive column hiding).
 - **Phase 5**: Remote Mode Foundation (`DatagridDXRemote`, `CustomStore`, `dataProvider.getGrid()`, multi-column remote sorting, remote filtering).
 - **Phase 6+**: Python Reference Backend (FastAPI, SQLModel, UV).
+- **Phase 9**: Grid State Persistence (safe separation of React-Admin query state and DevExtreme visual state).
+- **Phase 10**: Inline Grid Editing (React-Admin mutation bridge).
 
 ## License & Disclaimers
 

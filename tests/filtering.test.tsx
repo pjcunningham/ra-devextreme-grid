@@ -510,4 +510,42 @@ describe('DatagridDX Managed Filtering (Phase 4A)', () => {
     // Screen should still be on /customers without navigating
     expect(await screen.findByText('Alice Smith')).toBeInTheDocument();
   });
+
+  // Scenario Z: Phase 4B remoteOperations cleanup
+  it('Scenario Z: operates cleanly without remoteOperations.filtering passed to DataGrid', async () => {
+    const setFilters = vi.fn();
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+    const context = createMockListContext<Customer>({
+      data: sampleCustomers,
+      total: 3,
+      setFilters,
+    });
+
+    render(
+      <ListContextProvider value={context}>
+        <DatagridDX<Customer> ref={gridRef} filtering>
+          <Column dataField="name" caption="Name" />
+          <Column dataField="country" caption="Country" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    const instance = gridRef.current?.instance();
+    // remoteOperations.filtering is not configured (reverts to DevExtreme default 'auto')
+    expect(instance?.option('remoteOperations.filtering')).toBeUndefined();
+    expect(instance?.option('remoteOperations')).not.toEqual(
+      expect.objectContaining({ filtering: true })
+    );
+
+    // Verify filter operation still triggers setFilters
+    act(() => {
+      instance?.option('filterValue', ['country', '=', 'UK']);
+    });
+
+    expect(setFilters).toHaveBeenCalledWith(
+      expect.objectContaining({ country_eq: 'UK' }),
+      expect.anything(),
+      true
+    );
+  });
 });

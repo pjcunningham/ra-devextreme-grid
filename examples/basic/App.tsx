@@ -301,12 +301,29 @@ export const CustomerList = (): React.JSX.Element => (
       rowClick="edit"
       showBorders={true}
       showRowLines={true}
+      allowColumnResizing={true}
+      allowColumnReordering={true}
+      columnAutoWidth={true}
+      columnChooser={{
+        enabled: true,
+        mode: 'select',
+        search: {
+          enabled: true,
+        },
+      }}
+      columnFixing={{
+        enabled: true,
+      }}
+      columnHidingEnabled={true}
     >
       <Column
         dataField="id"
         caption="ID"
         width={70}
         dataType="number"
+        allowHiding={false}
+        fixed={true}
+        fixedPosition="left"
         filterOperations={['=', '<>', '>', '>=', '<', '<=', 'between']}
         selectedFilterOperation="="
       />
@@ -314,6 +331,7 @@ export const CustomerList = (): React.JSX.Element => (
         dataField="name"
         caption="Customer Name"
         dataType="string"
+        hidingPriority={3}
         filterOperations={['contains', '=', '<>']}
         selectedFilterOperation="contains"
       />
@@ -321,6 +339,7 @@ export const CustomerList = (): React.JSX.Element => (
         dataField="company"
         caption="Company"
         dataType="string"
+        hidingPriority={1}
         filterOperations={['contains', '=', '<>']}
         selectedFilterOperation="contains"
       />
@@ -328,6 +347,7 @@ export const CustomerList = (): React.JSX.Element => (
         dataField="city"
         caption="City"
         dataType="string"
+        hidingPriority={0}
         filterOperations={['contains', '=', '<>']}
         selectedFilterOperation="contains"
       />
@@ -335,6 +355,7 @@ export const CustomerList = (): React.JSX.Element => (
         dataField="country"
         caption="Country"
         dataType="string"
+        hidingPriority={2}
         filterOperations={['contains', '=', '<>']}
         selectedFilterOperation="contains"
       />

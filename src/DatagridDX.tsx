@@ -152,20 +152,15 @@ export const DatagridDX = forwardRef(function DatagridDX<RecordType extends RaRe
     ...restProps
   } = props;
 
-  const {
-    filterRowConfig,
-    filterSyncEnabled,
-    remoteOperations,
-    handleFilterOptionChanged,
-    syncGridFilter,
-  } = useManagedFiltering<RecordType>({
-    gridRef: innerRef,
-    filtering,
-    getRaFilters,
-    getDxFilterValue,
-    columns: props.columns,
-    children,
-  });
+  const { filterRowConfig, filterSyncEnabled, handleFilterOptionChanged, syncGridFilter } =
+    useManagedFiltering<RecordType>({
+      gridRef: innerRef,
+      filtering,
+      getRaFilters,
+      getDxFilterValue,
+      columns: props.columns,
+      children,
+    });
 
   // Configuration for DevExtreme selection locked to adapter invariants
   const selectionConfig = useMemo(() => {
@@ -246,7 +241,11 @@ export const DatagridDX = forwardRef(function DatagridDX<RecordType extends RaRe
         target &&
         (target.closest?.('.dx-command-select') ||
           target.closest?.('.dx-select-checkbox') ||
-          target.classList?.contains('dx-select-checkbox'))
+          target.classList?.contains('dx-select-checkbox') ||
+          target.closest?.('.dx-command-adaptive') ||
+          target.closest?.('.dx-adaptive-detail-row') ||
+          target.closest?.('.dx-datagrid-adaptive-more') ||
+          target.classList?.contains('dx-datagrid-adaptive-more'))
       ) {
         return;
       }
@@ -329,7 +328,6 @@ export const DatagridDX = forwardRef(function DatagridDX<RecordType extends RaRe
         sorting={{ mode: 'single' }}
         filterRow={filterRowConfig}
         filterSyncEnabled={filterSyncEnabled}
-        remoteOperations={remoteOperations}
         selection={selectionConfig}
         selectedRowKeys={selection ? currentPageSelectedKeys : undefined}
         onContentReady={handleContentReady}

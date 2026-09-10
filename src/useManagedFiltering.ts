@@ -119,7 +119,6 @@ export function useManagedFiltering<RecordType extends RaRecord = RaRecord>({
   return {
     filterRowConfig,
     filterSyncEnabled: filtering ? true : undefined,
-    remoteOperations: filtering ? ({ filtering: true } as const) : undefined,
     handleFilterOptionChanged,
     syncGridFilter,
   };

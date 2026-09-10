@@ -56,9 +56,10 @@ export type DatagridDXGetDxFilterValue = (
  * Props accepted by the DatagridDX component.
  *
  * In managed mode, `dataSource`, `keyExpr`, `paging`, `pager`, `sorting`,
- * `remoteOperations`, selection, and filtering configuration are owned by the adapter
+ * `remoteOperations`, `stateStoring`, selection, and filtering configuration are owned by the adapter
  * to preserve React-Admin data ownership, server-side paging, single-column sorting,
- * cross-page selection persistence, and debounced list filtering.
+ * cross-page selection persistence, and debounced list filtering. Native `stateStoring`
+ * is intentionally omitted to prevent competing state ownership.
  */
 export type DatagridDXProps<RecordType extends RaRecord = RaRecord> = Omit<
   IDataGridOptions<RecordType, RecordType['id']>,
@@ -82,6 +83,7 @@ export type DatagridDXProps<RecordType extends RaRecord = RaRecord> = Omit<
   | 'filterBuilder'
   | 'filterBuilderPopup'
   | 'searchPanel'
+  | 'stateStoring'
 > & {
   selection?: boolean | DatagridDXSelectionOptions;
   rowClick?: DatagridDXRowClick;
