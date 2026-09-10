@@ -19,6 +19,7 @@ import {
 import type { DatagridDXProps } from './types';
 import { toDxSortOrder, toRaSortOrder } from './sortUtils';
 import { areIdentifierSetsEqual } from './selectionUtils';
+import { useManagedFiltering } from './useManagedFiltering';
 
 const DEFAULT_EMPTY_ARRAY: never[] = [];
 
@@ -145,8 +146,26 @@ export const DatagridDX = forwardRef(function DatagridDX<RecordType extends RaRe
     noDataText,
     selection,
     rowClick,
+    filtering,
+    getRaFilters,
+    getDxFilterValue,
     ...restProps
   } = props;
+
+  const {
+    filterRowConfig,
+    filterSyncEnabled,
+    remoteOperations,
+    handleFilterOptionChanged,
+    syncGridFilter,
+  } = useManagedFiltering<RecordType>({
+    gridRef: innerRef,
+    filtering,
+    getRaFilters,
+    getDxFilterValue,
+    columns: props.columns,
+    children,
+  });
 
   // Configuration for DevExtreme selection locked to adapter invariants
   const selectionConfig = useMemo(() => {
@@ -244,18 +263,21 @@ export const DatagridDX = forwardRef(function DatagridDX<RecordType extends RaRe
     [onRowClick, rowClick, resource]
   );
 
-  // Compose onContentReady to sync column sort state once columns are initialized
+  // Compose onContentReady to sync column sort and filter state once columns are initialized
   const handleContentReady = useCallback(
     (e: DataGridContentReadyEvent<RecordType>) => {
       syncGridSort();
+      syncGridFilter();
       onContentReady?.(e);
     },
-    [syncGridSort, onContentReady]
+    [syncGridSort, syncGridFilter, onContentReady]
   );
 
-  // Compose onOptionChanged to intercept user column sorting
+  // Compose onOptionChanged to intercept user column sorting and filtering
   const handleOptionChanged = useCallback(
     (e: DataGridOptionChangedEvent<RecordType>) => {
+      handleFilterOptionChanged(e);
+
       if (
         !isSyncingRef.current &&
         e.name === 'columns' &&
@@ -291,7 +313,7 @@ export const DatagridDX = forwardRef(function DatagridDX<RecordType extends RaRe
 
       onOptionChanged?.(e);
     },
-    [onOptionChanged, setSort]
+    [handleFilterOptionChanged, onOptionChanged, setSort]
   );
 
   return (
@@ -305,6 +327,9 @@ export const DatagridDX = forwardRef(function DatagridDX<RecordType extends RaRe
         noDataText={isPending ? '' : (noDataText ?? 'No data')}
         paging={{ enabled: false }}
         sorting={{ mode: 'single' }}
+        filterRow={filterRowConfig}
+        filterSyncEnabled={filterSyncEnabled}
+        remoteOperations={remoteOperations}
         selection={selectionConfig}
         selectedRowKeys={selection ? currentPageSelectedKeys : undefined}
         onContentReady={handleContentReady}

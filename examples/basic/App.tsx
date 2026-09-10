@@ -16,7 +16,7 @@ import {
   type RaRecord,
 } from 'react-admin';
 import { Column } from 'devextreme-react/data-grid';
-import { DatagridDX, DatagridDXPagination } from '../../src/index';
+import { DatagridDX, DatagridDXPagination, parseRaFilterKey } from '../../src/index';
 
 interface Customer extends RaRecord {
   id: number;
@@ -111,14 +111,69 @@ const dataProvider: DataProvider = {
     _resource: string,
     params: GetListParams
   ) => {
-    const { pagination, sort } = params;
+    const { pagination, sort, filter = {} } = params;
     const page = pagination?.page ?? 1;
     const perPage = pagination?.perPage ?? 10;
     const field = (sort?.field ?? 'id') as keyof Customer;
     const order = sort?.order ?? 'ASC';
 
-    // Sort the entire dataset before pagination
-    const sorted = [...sampleCustomers].sort((a, b) => {
+    // 1. Filter the entire dataset before sorting and pagination
+    let filtered = [...sampleCustomers];
+
+    // External search filter (q)
+    if (filter.q) {
+      const q = String(filter.q).toLowerCase();
+      filtered = filtered.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          c.company.toLowerCase().includes(q) ||
+          c.city.toLowerCase().includes(q) ||
+          c.country.toLowerCase().includes(q)
+      );
+    }
+
+    // Process column-specific filters
+    for (const [key, rawVal] of Object.entries(filter)) {
+      if (key === 'q' || rawVal === undefined || rawVal === null || rawVal === '') continue;
+
+      const { field: propName, suffix } = parseRaFilterKey(key);
+      const val = typeof rawVal === 'string' ? rawVal.toLowerCase() : rawVal;
+
+      filtered = filtered.filter((record) => {
+        const itemVal = record[propName as keyof Customer];
+        if (suffix === 'q') {
+          return itemVal != null && String(itemVal).toLowerCase().includes(String(val));
+        }
+        if (suffix === 'eq' || !suffix) {
+          if (typeof itemVal === 'string' && typeof val === 'string') {
+            return itemVal.toLowerCase() === val;
+          }
+          return itemVal === val;
+        }
+        if (suffix === 'neq') {
+          if (typeof itemVal === 'string' && typeof val === 'string') {
+            return itemVal.toLowerCase() !== val;
+          }
+          return itemVal !== val;
+        }
+        if (suffix === 'gt') {
+          return itemVal != null && Number(itemVal) > Number(val);
+        }
+        if (suffix === 'gte') {
+          return itemVal != null && Number(itemVal) >= Number(val);
+        }
+        if (suffix === 'lt') {
+          return itemVal != null && Number(itemVal) < Number(val);
+        }
+        if (suffix === 'lte') {
+          return itemVal != null && Number(itemVal) <= Number(val);
+        }
+        return true;
+      });
+    }
+
+    // 2. Sort the filtered dataset
+    const sorted = filtered.sort((a, b) => {
       const aVal = a[field];
       const bVal = b[field];
       if (aVal === bVal) return 0;
@@ -128,13 +183,17 @@ const dataProvider: DataProvider = {
       return order === 'DESC' ? -cmp : cmp;
     });
 
+    // 3. Compute total of the filtered dataset before slicing
+    const total = sorted.length;
+
+    // 4. Paginate
     const start = (page - 1) * perPage;
     const end = start + perPage;
     const sliced = sorted.slice(start, end);
 
     return {
       data: sliced as unknown as RecordType[],
-      total: sorted.length,
+      total,
     };
   },
   getOne: async <RecordType extends RaRecord = RaRecord>(
@@ -215,11 +274,17 @@ export const CustomerShow = (): React.JSX.Element => (
   </Show>
 );
 
+const customerFilters = [
+  <TextInput key="q" label="Global Search" source="q" alwaysOn />,
+  <TextInput key="country" label="External Country Filter" source="country" />,
+];
+
 export const CustomerList = (): React.JSX.Element => (
   <List
     title="Customers"
     perPage={10}
     sort={{ field: 'name', order: 'ASC' }}
+    filters={customerFilters}
     pagination={
       <DatagridDXPagination
         allowedPageSizes={[5, 10, 25]}
@@ -230,12 +295,49 @@ export const CustomerList = (): React.JSX.Element => (
     }
   >
     <SelectedCount />
-    <DatagridDX<Customer> selection rowClick="edit" showBorders={true} showRowLines={true}>
-      <Column dataField="id" caption="ID" width={70} />
-      <Column dataField="name" caption="Customer Name" />
-      <Column dataField="company" caption="Company" />
-      <Column dataField="city" caption="City" />
-      <Column dataField="country" caption="Country" />
+    <DatagridDX<Customer>
+      filtering
+      selection
+      rowClick="edit"
+      showBorders={true}
+      showRowLines={true}
+    >
+      <Column
+        dataField="id"
+        caption="ID"
+        width={70}
+        dataType="number"
+        filterOperations={['=', '<>', '>', '>=', '<', '<=', 'between']}
+        selectedFilterOperation="="
+      />
+      <Column
+        dataField="name"
+        caption="Customer Name"
+        dataType="string"
+        filterOperations={['contains', '=', '<>']}
+        selectedFilterOperation="contains"
+      />
+      <Column
+        dataField="company"
+        caption="Company"
+        dataType="string"
+        filterOperations={['contains', '=', '<>']}
+        selectedFilterOperation="contains"
+      />
+      <Column
+        dataField="city"
+        caption="City"
+        dataType="string"
+        filterOperations={['contains', '=', '<>']}
+        selectedFilterOperation="contains"
+      />
+      <Column
+        dataField="country"
+        caption="Country"
+        dataType="string"
+        filterOperations={['contains', '=', '<>']}
+        selectedFilterOperation="contains"
+      />
     </DatagridDX>
   </List>
 );
