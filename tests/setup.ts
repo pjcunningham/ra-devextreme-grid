@@ -1,4 +1,10 @@
 import '@testing-library/jest-dom/vitest';
+import { afterEach } from 'vitest';
+import { cleanup } from '@testing-library/react';
+
+afterEach(() => {
+  cleanup();
+});
 
 // Prevent DevExtreme trial panel from registering custom elements that queue unhandled microtasks on teardown
 if (typeof customElements !== 'undefined') {

@@ -3,16 +3,34 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   type ForwardedRef,
   type ReactElement,
 } from 'react';
 import { DataGrid, type DataGridRef, type IDataGridOptions } from 'devextreme-react/data-grid';
-import { useListContext, type RaRecord, type SortPayload } from 'react-admin';
+import {
+  useInRouterContext,
+  useListContext,
+  useRedirect,
+  type RaRecord,
+  type SortPayload,
+} from 'react-admin';
 import type { DatagridDXProps } from './types';
 import { toDxSortOrder, toRaSortOrder } from './sortUtils';
+import { areIdentifierSetsEqual } from './selectionUtils';
 
 const DEFAULT_EMPTY_ARRAY: never[] = [];
+
+function NavigationBridge({
+  redirectRef,
+}: {
+  redirectRef: { current: ReturnType<typeof useRedirect> | null };
+}) {
+  const redirect = useRedirect();
+  redirectRef.current = redirect;
+  return null;
+}
 
 type DataGridContentReadyEvent<RecordType extends RaRecord = RaRecord> = Parameters<
   NonNullable<IDataGridOptions<RecordType, RecordType['id']>['onContentReady']>
@@ -20,6 +38,14 @@ type DataGridContentReadyEvent<RecordType extends RaRecord = RaRecord> = Paramet
 
 type DataGridOptionChangedEvent<RecordType extends RaRecord = RaRecord> = Parameters<
   NonNullable<IDataGridOptions<RecordType, RecordType['id']>['onOptionChanged']>
+>[0];
+
+type DataGridSelectionChangedEvent<RecordType extends RaRecord = RaRecord> = Parameters<
+  NonNullable<IDataGridOptions<RecordType, RecordType['id']>['onSelectionChanged']>
+>[0];
+
+type DataGridRowClickEvent<RecordType extends RaRecord = RaRecord> = Parameters<
+  NonNullable<IDataGridOptions<RecordType, RecordType['id']>['onRowClick']>
 >[0];
 
 /**
@@ -33,7 +59,10 @@ export const DatagridDX = forwardRef(function DatagridDX<RecordType extends RaRe
   props: DatagridDXProps<RecordType>,
   ref: ForwardedRef<DataGridRef<RecordType, RecordType['id']>>
 ) {
-  const { data, isPending, isFetching, sort, setSort } = useListContext<RecordType>();
+  const { data, isPending, isFetching, sort, setSort, selectedIds, onSelect, resource } =
+    useListContext<RecordType>();
+  const isInRouter = useInRouterContext();
+  const redirectRef = useRef<ReturnType<typeof useRedirect> | null>(null);
   const innerRef = useRef<DataGridRef<RecordType, RecordType['id']> | null>(null);
 
   // Guards to isolate programmatic sort synchronization from user interactions
@@ -107,7 +136,113 @@ export const DatagridDX = forwardRef(function DatagridDX<RecordType extends RaRe
     syncGridSort();
   }, [syncGridSort]);
 
-  const { onContentReady, onOptionChanged, children, noDataText, ...restProps } = props;
+  const {
+    onContentReady,
+    onOptionChanged,
+    onSelectionChanged,
+    onRowClick,
+    children,
+    noDataText,
+    selection,
+    rowClick,
+    ...restProps
+  } = props;
+
+  // Configuration for DevExtreme selection locked to adapter invariants
+  const selectionConfig = useMemo(() => {
+    if (!selection) {
+      return { mode: 'none' as const };
+    }
+    return {
+      showCheckBoxesMode: 'always' as const,
+      allowSelectAll: true,
+      ...(typeof selection === 'object' ? selection : {}),
+      mode: 'multiple' as const,
+      deferred: false,
+      selectAllMode: 'page' as const,
+    };
+  }, [selection]);
+
+  // Set of current-page record IDs for fast intersection checks
+  const currentPageIdSet = useMemo(() => {
+    const set = new Set<RecordType['id']>();
+    if (data) {
+      for (let i = 0; i < data.length; i++) {
+        const record = data[i];
+        if (record) {
+          set.add(record.id);
+        }
+      }
+    }
+    return set;
+  }, [data]);
+
+  // Controlled selectedRowKeys passed to DevExtreme containing only current-page selections
+  const currentPageSelectedKeys = useMemo(() => {
+    if (!selection || !selectedIds || selectedIds.length === 0) {
+      return DEFAULT_EMPTY_ARRAY;
+    }
+    return selectedIds.filter((id) => currentPageIdSet.has(id as RecordType['id']));
+  }, [selection, selectedIds, currentPageIdSet]);
+
+  // Handle DevExtreme selection change, merging current-page selections with off-page IDs
+  const handleSelectionChanged = useCallback(
+    (e: DataGridSelectionChangedEvent<RecordType>) => {
+      if (selection && onSelect) {
+        const currentSelectedIds = selectedIds ?? DEFAULT_EMPTY_ARRAY;
+        const offPageSelection = currentSelectedIds.filter(
+          (id) => !currentPageIdSet.has(id as RecordType['id'])
+        );
+        const newSelection = [...offPageSelection, ...(e.selectedRowKeys as (string | number)[])];
+
+        if (!areIdentifierSetsEqual(currentSelectedIds, newSelection)) {
+          onSelect(newSelection);
+        }
+      }
+
+      onSelectionChanged?.(e);
+    },
+    [selection, onSelect, selectedIds, currentPageIdSet, onSelectionChanged]
+  );
+
+  // Handle DevExtreme row clicks, triggering React-Admin navigation if enabled
+  const handleRowClick = useCallback(
+    (e: DataGridRowClickEvent<RecordType>) => {
+      onRowClick?.(e);
+
+      if (e.handled) {
+        return;
+      }
+
+      if (!rowClick || (rowClick !== 'edit' && rowClick !== 'show')) {
+        return;
+      }
+
+      if (e.rowType !== 'data') {
+        return;
+      }
+
+      const target = e.event?.target as HTMLElement | null | undefined;
+      if (
+        target &&
+        (target.closest?.('.dx-command-select') ||
+          target.closest?.('.dx-select-checkbox') ||
+          target.classList?.contains('dx-select-checkbox'))
+      ) {
+        return;
+      }
+
+      const record = e.data;
+      if (!record || record.id === undefined) {
+        return;
+      }
+
+      if (redirectRef.current) {
+        redirectRef.current(rowClick, resource, record.id, record);
+      }
+    },
+    [onRowClick, rowClick, resource]
+  );
 
   // Compose onContentReady to sync column sort state once columns are initialized
   const handleContentReady = useCallback(
@@ -160,19 +295,26 @@ export const DatagridDX = forwardRef(function DatagridDX<RecordType extends RaRe
   );
 
   return (
-    <DataGrid<RecordType, RecordType['id']>
-      ref={innerRef}
-      keyExpr="id"
-      {...restProps}
-      dataSource={data ?? DEFAULT_EMPTY_ARRAY}
-      noDataText={isPending ? '' : (noDataText ?? 'No data')}
-      paging={{ enabled: false }}
-      sorting={{ mode: 'single' }}
-      onContentReady={handleContentReady}
-      onOptionChanged={handleOptionChanged}
-    >
-      {children}
-    </DataGrid>
+    <>
+      {isInRouter && <NavigationBridge redirectRef={redirectRef} />}
+      <DataGrid<RecordType, RecordType['id']>
+        ref={innerRef}
+        keyExpr="id"
+        {...restProps}
+        dataSource={data ?? DEFAULT_EMPTY_ARRAY}
+        noDataText={isPending ? '' : (noDataText ?? 'No data')}
+        paging={{ enabled: false }}
+        sorting={{ mode: 'single' }}
+        selection={selectionConfig}
+        selectedRowKeys={selection ? currentPageSelectedKeys : undefined}
+        onContentReady={handleContentReady}
+        onOptionChanged={handleOptionChanged}
+        onSelectionChanged={handleSelectionChanged}
+        onRowClick={handleRowClick}
+      >
+        {children}
+      </DataGrid>
+    </>
   );
 }) as <RecordType extends RaRecord = RaRecord>(
   props: DatagridDXProps<RecordType> & {

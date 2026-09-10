@@ -1,11 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { render, screen, act, waitFor, fireEvent } from '@testing-library/react';
 import { createRef } from 'react';
 import { Column, type DataGridRef } from 'devextreme-react/data-grid';
 import {
   AdminContext,
   ListBase,
   ListContextProvider,
+  TestMemoryRouter,
+  useListContext,
   type DataProvider,
   type ListControllerResult,
   type RaRecord,
@@ -56,6 +58,10 @@ interface Customer extends RaRecord {
 interface StringIdRecord extends RaRecord<string> {
   id: string;
   title: string;
+}
+
+interface RouterLocation {
+  pathname: string;
 }
 
 describe('DatagridDX component (Phase 1 Managed Grid)', () => {
@@ -744,5 +750,821 @@ describe('DatagridDX managed single-column sorting (Phase 2)', () => {
     const instance = gridRef.current?.instance();
     expect(instance?.columnOption(0, 'sortOrder')).toBeUndefined();
     expect(instance?.columnOption(1, 'sortOrder')).toBeUndefined();
+  });
+});
+
+describe('DatagridDX component (Phase 3 Selection & Navigation)', () => {
+  // Scenario A: Selection disabled by default
+  it('Scenario A: selection is disabled by default (mode: "none", no checkboxes)', () => {
+    const records: Customer[] = [
+      { id: 1, name: 'Alice', email: 'alice@example.com' },
+      { id: 2, name: 'Bob', email: 'bob@example.com' },
+    ];
+    const contextValue = createMockListContext<Customer>({ data: records, total: 2 });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    render(
+      <ListContextProvider value={contextValue}>
+        <DatagridDX<Customer> ref={gridRef}>
+          <Column dataField="name" caption="Name" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    const instance = gridRef.current?.instance();
+    expect(instance?.option('selection.mode')).toBe('none');
+    expect(document.querySelector('.dx-select-checkbox')).toBeNull();
+  });
+
+  // Scenario B: Selection enabled
+  it('Scenario B: selection enabled configures mode: "multiple" and selectAllMode: "page"', () => {
+    const records: Customer[] = [{ id: 1, name: 'Alice', email: 'alice@example.com' }];
+    const contextValue = createMockListContext<Customer>({ data: records, total: 1 });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    render(
+      <ListContextProvider value={contextValue}>
+        <DatagridDX<Customer> ref={gridRef} selection>
+          <Column dataField="name" caption="Name" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    const instance = gridRef.current?.instance();
+    expect(instance?.option('selection.mode')).toBe('multiple');
+    expect(instance?.option('selection.selectAllMode')).toBe('page');
+    expect(instance?.option('selection.deferred')).toBe(false);
+  });
+
+  // Scenario C: React-Admin -> DevExtreme projection
+  it('Scenario C: maps React-Admin selectedIds to DevExtreme selectedRowKeys', () => {
+    const records: Customer[] = [
+      { id: 1, name: 'Alice', email: 'alice@example.com' },
+      { id: 2, name: 'Bob', email: 'bob@example.com' },
+      { id: 3, name: 'Carol', email: 'carol@example.com' },
+    ];
+    const contextValue = createMockListContext<Customer>({
+      data: records,
+      total: 3,
+      selectedIds: [2],
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    render(
+      <ListContextProvider value={contextValue}>
+        <DatagridDX<Customer> ref={gridRef} selection>
+          <Column dataField="name" caption="Name" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    const instance = gridRef.current?.instance();
+    expect(instance?.option('selectedRowKeys')).toEqual([2]);
+  });
+
+  // Scenario D: Off-page IDs filtered from DevExtreme
+  it('Scenario D: excludes off-page selected IDs from DevExtreme selectedRowKeys', () => {
+    const records: Customer[] = [
+      { id: 1, name: 'Alice', email: 'alice@example.com' },
+      { id: 2, name: 'Bob', email: 'bob@example.com' },
+      { id: 3, name: 'Carol', email: 'carol@example.com' },
+    ];
+    const contextValue = createMockListContext<Customer>({
+      data: records,
+      total: 30,
+      selectedIds: [2, 15],
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    render(
+      <ListContextProvider value={contextValue}>
+        <DatagridDX<Customer> ref={gridRef} selection>
+          <Column dataField="name" caption="Name" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    const instance = gridRef.current?.instance();
+    expect(instance?.option('selectedRowKeys')).toEqual([2]);
+  });
+
+  // Scenario E: DevExtreme -> React-Admin selection
+  it('Scenario E: merges current page user selection with off-page selected IDs via onSelect', async () => {
+    const records: Customer[] = [
+      { id: 1, name: 'Alice', email: 'alice@example.com' },
+      { id: 2, name: 'Bob', email: 'bob@example.com' },
+      { id: 3, name: 'Carol', email: 'carol@example.com' },
+    ];
+    const onSelect = vi.fn();
+    const contextValue = createMockListContext<Customer>({
+      data: records,
+      total: 30,
+      selectedIds: [15],
+      onSelect,
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    render(
+      <ListContextProvider value={contextValue}>
+        <DatagridDX<Customer> ref={gridRef} selection>
+          <Column dataField="name" caption="Name" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    const instance = gridRef.current?.instance();
+    await act(async () => {
+      await instance?.selectRows([2], true);
+    });
+
+    await waitFor(() => {
+      expect(onSelect).toHaveBeenCalledTimes(1);
+    });
+    const callArgs = onSelect.mock.calls[0]?.[0] as (string | number)[] | undefined;
+    expect(new Set(callArgs ?? [])).toEqual(new Set([15, 2]));
+  });
+
+  // Scenario F: Current-page deselection preserves off-page IDs
+  it('Scenario F: deselecting visible rows preserves off-page selections in onSelect', async () => {
+    const records: Customer[] = [
+      { id: 1, name: 'Alice', email: 'alice@example.com' },
+      { id: 2, name: 'Bob', email: 'bob@example.com' },
+      { id: 3, name: 'Carol', email: 'carol@example.com' },
+    ];
+    const onSelect = vi.fn();
+    const contextValue = createMockListContext<Customer>({
+      data: records,
+      total: 30,
+      selectedIds: [2, 15],
+      onSelect,
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    render(
+      <ListContextProvider value={contextValue}>
+        <DatagridDX<Customer> ref={gridRef} selection>
+          <Column dataField="name" caption="Name" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    const instance = gridRef.current?.instance();
+    await act(async () => {
+      await instance?.deselectRows([2]);
+    });
+
+    await waitFor(() => {
+      expect(onSelect).toHaveBeenCalledTimes(1);
+    });
+    expect(onSelect).toHaveBeenCalledWith([15]);
+  });
+
+  // Scenario G: External selection clearing
+  it('Scenario G: external selection clearing updates DevExtreme without calling onSelect', () => {
+    const records: Customer[] = [
+      { id: 1, name: 'Alice', email: 'alice@example.com' },
+      { id: 2, name: 'Bob', email: 'bob@example.com' },
+    ];
+    const onSelect = vi.fn();
+    const initialContext = createMockListContext<Customer>({
+      data: records,
+      total: 2,
+      selectedIds: [2],
+      onSelect,
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    const { rerender } = render(
+      <ListContextProvider value={initialContext}>
+        <DatagridDX<Customer> ref={gridRef} selection>
+          <Column dataField="name" caption="Name" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    const instance = gridRef.current?.instance();
+    expect(instance?.option('selectedRowKeys')).toEqual([2]);
+    expect(onSelect).not.toHaveBeenCalled();
+
+    const clearedContext = createMockListContext<Customer>({
+      data: records,
+      total: 2,
+      selectedIds: [],
+      onSelect,
+    });
+
+    rerender(
+      <ListContextProvider value={clearedContext}>
+        <DatagridDX<Customer> ref={gridRef} selection>
+          <Column dataField="name" caption="Name" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    expect(instance?.option('selectedRowKeys')).toEqual([]);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  // Scenario H & I: Feedback-loop guard prevents redundant onSelect and ignores array ordering
+  it('Scenario H & I: feedback-loop guard prevents redundant onSelect and ignores array ordering', () => {
+    const records: Customer[] = [
+      { id: 1, name: 'Alice', email: 'alice@example.com' },
+      { id: 2, name: 'Bob', email: 'bob@example.com' },
+      { id: 3, name: 'Carol', email: 'carol@example.com' },
+    ];
+    const onSelect = vi.fn();
+    const contextValue = createMockListContext<Customer>({
+      data: records,
+      total: 3,
+      selectedIds: [2, 3],
+      onSelect,
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    render(
+      <ListContextProvider value={contextValue}>
+        <DatagridDX<Customer> ref={gridRef} selection>
+          <Column dataField="name" caption="Name" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    const instance = gridRef.current?.instance();
+    expect(onSelect).not.toHaveBeenCalled();
+
+    // Trigger DevExtreme selection with reversed order [3, 2]
+    act(() => {
+      instance?.selectRows([3, 2], false);
+    });
+
+    // Logical set is unchanged -> onSelect must NOT be invoked
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  // Scenario J: String identifiers
+  it('Scenario J: preserves string identifiers strictly without numeric coercion', async () => {
+    const records: StringIdRecord[] = [
+      { id: 'cust-1', title: 'First' },
+      { id: '1', title: 'Second' },
+    ];
+    const onSelect = vi.fn();
+    const contextValue = createMockListContext<StringIdRecord>({
+      data: records,
+      total: 2,
+      selectedIds: ['1'],
+      onSelect,
+    });
+    const gridRef = createRef<DataGridRef<StringIdRecord, string>>();
+
+    render(
+      <ListContextProvider value={contextValue}>
+        <DatagridDX<StringIdRecord> ref={gridRef} selection>
+          <Column dataField="id" caption="ID" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    const instance = gridRef.current?.instance();
+    expect(instance?.option('selectedRowKeys')).toEqual(['1']);
+
+    await act(async () => {
+      await instance?.selectRows(['cust-1'], true);
+    });
+
+    await waitFor(() => {
+      expect(onSelect).toHaveBeenCalledTimes(1);
+    });
+    const callArgs = onSelect.mock.calls[0]?.[0] as (string | number)[] | undefined;
+    expect(new Set(callArgs ?? [])).toEqual(new Set(['1', 'cust-1']));
+  });
+
+  // Scenario K: Select all on current page
+  it('Scenario K: select all on current page preserves off-page selected IDs', async () => {
+    const records: Customer[] = [
+      { id: 1, name: 'Alice', email: 'alice@example.com' },
+      { id: 2, name: 'Bob', email: 'bob@example.com' },
+    ];
+    const onSelect = vi.fn();
+    const contextValue = createMockListContext<Customer>({
+      data: records,
+      total: 20,
+      selectedIds: [99],
+      onSelect,
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    const { container } = render(
+      <ListContextProvider value={contextValue}>
+        <DatagridDX<Customer> ref={gridRef} selection>
+          <Column dataField="name" caption="Name" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    expect(await screen.findByText('Alice')).toBeInTheDocument();
+
+    const headerCheckbox = container.querySelector('.dx-header-row .dx-select-checkbox')!;
+    expect(headerCheckbox).toBeInTheDocument();
+    fireEvent.click(headerCheckbox);
+
+    await waitFor(() => {
+      expect(onSelect).toHaveBeenCalledTimes(1);
+    });
+    const callArgsK = onSelect.mock.calls[0]?.[0] as (string | number)[] | undefined;
+    expect(new Set(callArgsK ?? [])).toEqual(new Set([99, 1, 2]));
+  });
+
+  // Scenario L: Cross-page selection across page navigation
+  it('Scenario L: preserves selections across real page navigation', async () => {
+    const allRecords: Customer[] = Array.from({ length: 20 }, (_, i) => ({
+      id: i + 1,
+      name: `Customer ${i + 1}`,
+      email: `c${i + 1}@example.com`,
+    }));
+
+    const getListSpy = vi.fn().mockImplementation(async (_resource, params) => {
+      const { page = 1, perPage = 5 } = params.pagination ?? {};
+      const start = (page - 1) * perPage;
+      return {
+        data: allRecords.slice(start, start + perPage),
+        total: allRecords.length,
+      };
+    });
+
+    const dataProvider: DataProvider = {
+      getList: getListSpy,
+      getOne: vi.fn(),
+      getMany: vi.fn(),
+      getManyReference: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+      delete: vi.fn(),
+      deleteMany: vi.fn(),
+    };
+
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+    let testListContext: ListControllerResult<Customer> | undefined;
+
+    const ContextProbe = () => {
+      testListContext = useListContext<Customer>();
+      return null;
+    };
+
+    const { unmount } = render(
+      <AdminContext dataProvider={dataProvider}>
+        <ListBase resource="customers" perPage={5}>
+          <ContextProbe />
+          <DatagridDX<Customer> ref={gridRef} selection>
+            <Column dataField="id" caption="ID" />
+            <Column dataField="name" caption="Name" />
+          </DatagridDX>
+        </ListBase>
+      </AdminContext>
+    );
+
+    expect(await screen.findByText('Customer 1')).toBeInTheDocument();
+
+    // Select row 2 on page 1
+    await act(async () => {
+      await gridRef.current?.instance().selectRows([2], true);
+    });
+
+    await waitFor(() => {
+      expect(testListContext?.selectedIds).toEqual([2]);
+    });
+
+    // Move to page 2 via React-Admin's setPage
+    act(() => {
+      testListContext?.setPage(2);
+    });
+    expect(await screen.findByText('Customer 6')).toBeInTheDocument();
+
+    // Verify page 2 initially shows no selected rows in DevExtreme (since 2 is off-page)
+    expect(gridRef.current?.instance().option('selectedRowKeys')).toEqual([]);
+
+    // Select row 7 on page 2
+    await act(async () => {
+      await gridRef.current?.instance().selectRows([7], true);
+    });
+
+    await waitFor(() => {
+      expect(new Set(testListContext?.selectedIds)).toEqual(new Set([2, 7]));
+    });
+
+    // Return to page 1 via React-Admin's setPage
+    act(() => {
+      testListContext?.setPage(1);
+    });
+    expect(await screen.findByText('Customer 1')).toBeInTheDocument();
+
+    // Verify row 2 is visibly selected on page 1 again
+    await waitFor(() => {
+      expect(gridRef.current?.instance().option('selectedRowKeys')).toEqual([2]);
+    });
+    expect(new Set(testListContext?.selectedIds)).toEqual(new Set([2, 7]));
+
+    unmount();
+  });
+
+  // Scenario M: Selection preservation across server sorting
+  it('Scenario M: retains selection in React-Admin when server sort moves record off current page', () => {
+    const page1Records: Customer[] = [
+      { id: 1, name: 'Alice', email: 'alice@example.com' },
+      { id: 2, name: 'Bob', email: 'bob@example.com' },
+    ];
+    const onSelect = vi.fn();
+    const initialContext = createMockListContext<Customer>({
+      data: page1Records,
+      total: 10,
+      selectedIds: [2],
+      onSelect,
+      sort: { field: 'id', order: 'ASC' },
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    const { rerender } = render(
+      <ListContextProvider value={initialContext}>
+        <DatagridDX<Customer> ref={gridRef} selection>
+          <Column dataField="name" caption="Name" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    expect(gridRef.current?.instance().option('selectedRowKeys')).toEqual([2]);
+
+    // Sort order changes on server, now returning records 9 and 10 (record 2 moved off-page)
+    const pageAfterSort: Customer[] = [
+      { id: 9, name: 'Yvonne', email: 'yvonne@example.com' },
+      { id: 10, name: 'Zack', email: 'zack@example.com' },
+    ];
+    const sortedContext = createMockListContext<Customer>({
+      data: pageAfterSort,
+      total: 10,
+      selectedIds: [2],
+      onSelect,
+      sort: { field: 'name', order: 'DESC' },
+    });
+
+    rerender(
+      <ListContextProvider value={sortedContext}>
+        <DatagridDX<Customer> ref={gridRef} selection>
+          <Column dataField="name" caption="Name" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    // DevExtreme receives empty selectedRowKeys since record 2 is off-page
+    expect(gridRef.current?.instance().option('selectedRowKeys')).toEqual([]);
+    // onSelect must NOT be called (selection is not cleared in React-Admin)
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  // Scenario N: Native onSelectionChanged composition
+  it('Scenario N: invokes consumer onSelectionChanged callback with native event', async () => {
+    const records: Customer[] = [
+      { id: 1, name: 'Alice', email: 'alice@example.com' },
+      { id: 2, name: 'Bob', email: 'bob@example.com' },
+    ];
+    const consumerOnSelectionChanged = vi.fn();
+    const contextValue = createMockListContext<Customer>({
+      data: records,
+      total: 2,
+      selectedIds: [],
+    });
+    const gridRef = createRef<DataGridRef<Customer, number>>();
+
+    render(
+      <ListContextProvider value={contextValue}>
+        <DatagridDX<Customer>
+          ref={gridRef}
+          selection
+          onSelectionChanged={consumerOnSelectionChanged}
+        >
+          <Column dataField="name" caption="Name" />
+        </DatagridDX>
+      </ListContextProvider>
+    );
+
+    const instance = gridRef.current?.instance();
+    await act(async () => {
+      await instance?.selectRows([1], false);
+    });
+
+    expect(consumerOnSelectionChanged).toHaveBeenCalledWith(
+      expect.objectContaining({
+        selectedRowKeys: [1],
+      })
+    );
+  });
+
+  // Navigation Scenarios O through W
+  // Scenario O: rowClick="edit"
+  it('Scenario O: rowClick="edit" redirects to edit route on data row click', async () => {
+    const records: Customer[] = [{ id: 42, name: 'Douglas', email: 'douglas@example.com' }];
+    const contextValue = createMockListContext<Customer>({
+      data: records,
+      total: 1,
+      resource: 'customers',
+    });
+    let currentLocation: RouterLocation | undefined;
+
+    const { container } = render(
+      <TestMemoryRouter
+        locationCallback={(loc) => {
+          currentLocation = loc;
+        }}
+      >
+        <ListContextProvider value={contextValue}>
+          <DatagridDX<Customer> rowClick="edit">
+            <Column dataField="name" caption="Name" />
+          </DatagridDX>
+        </ListContextProvider>
+      </TestMemoryRouter>
+    );
+
+    expect(await screen.findByText('Douglas')).toBeInTheDocument();
+    const row = container.querySelector('.dx-data-row')!;
+    fireEvent.click(row);
+
+    await waitFor(() => {
+      expect(currentLocation?.pathname).toBe('/customers/42');
+    });
+  });
+
+  // Scenario P: rowClick="show"
+  it('Scenario P: rowClick="show" redirects to show route on data row click', async () => {
+    const records: Customer[] = [{ id: 42, name: 'Douglas', email: 'douglas@example.com' }];
+    const contextValue = createMockListContext<Customer>({
+      data: records,
+      total: 1,
+      resource: 'customers',
+    });
+    let currentLocation: RouterLocation | undefined;
+
+    const { container } = render(
+      <TestMemoryRouter
+        locationCallback={(loc) => {
+          currentLocation = loc;
+        }}
+      >
+        <ListContextProvider value={contextValue}>
+          <DatagridDX<Customer> rowClick="show">
+            <Column dataField="name" caption="Name" />
+          </DatagridDX>
+        </ListContextProvider>
+      </TestMemoryRouter>
+    );
+
+    expect(await screen.findByText('Douglas')).toBeInTheDocument();
+    const row = container.querySelector('.dx-data-row')!;
+    fireEvent.click(row);
+
+    await waitFor(() => {
+      expect(currentLocation?.pathname).toBe('/customers/42/show');
+    });
+  });
+
+  // Scenario Q: rowClick={false}
+  it('Scenario Q: rowClick={false} produces no redirection on data row click', async () => {
+    const records: Customer[] = [{ id: 42, name: 'Douglas', email: 'douglas@example.com' }];
+    const contextValue = createMockListContext<Customer>({
+      data: records,
+      total: 1,
+      resource: 'customers',
+    });
+    let currentLocation: RouterLocation | undefined;
+
+    const { container } = render(
+      <TestMemoryRouter
+        locationCallback={(loc) => {
+          currentLocation = loc;
+        }}
+      >
+        <ListContextProvider value={contextValue}>
+          <DatagridDX<Customer> rowClick={false}>
+            <Column dataField="name" caption="Name" />
+          </DatagridDX>
+        </ListContextProvider>
+      </TestMemoryRouter>
+    );
+
+    expect(await screen.findByText('Douglas')).toBeInTheDocument();
+    const initialPath = currentLocation?.pathname;
+    const row = container.querySelector('.dx-data-row')!;
+    fireEvent.click(row);
+
+    expect(currentLocation?.pathname).toBe(initialPath);
+  });
+
+  // Scenario R: Default rowClick omitted
+  it('Scenario R: omitted rowClick produces no redirection on data row click', async () => {
+    const records: Customer[] = [{ id: 42, name: 'Douglas', email: 'douglas@example.com' }];
+    const contextValue = createMockListContext<Customer>({
+      data: records,
+      total: 1,
+      resource: 'customers',
+    });
+    let currentLocation: RouterLocation | undefined;
+
+    const { container } = render(
+      <TestMemoryRouter
+        locationCallback={(loc) => {
+          currentLocation = loc;
+        }}
+      >
+        <ListContextProvider value={contextValue}>
+          <DatagridDX<Customer>>
+            <Column dataField="name" caption="Name" />
+          </DatagridDX>
+        </ListContextProvider>
+      </TestMemoryRouter>
+    );
+
+    expect(await screen.findByText('Douglas')).toBeInTheDocument();
+    const initialPath = currentLocation?.pathname;
+    const row = container.querySelector('.dx-data-row')!;
+    fireEvent.click(row);
+
+    expect(currentLocation?.pathname).toBe(initialPath);
+  });
+
+  // Scenario S: String ID navigation
+  it('Scenario S: navigation preserves string record identifiers without alteration', async () => {
+    const records: StringIdRecord[] = [{ id: 'client-special/uuid-99', title: 'Special Item' }];
+    const contextValue = createMockListContext<StringIdRecord>({
+      data: records,
+      total: 1,
+      resource: 'items',
+    });
+    let currentLocation: RouterLocation | undefined;
+
+    const { container } = render(
+      <TestMemoryRouter
+        locationCallback={(loc) => {
+          currentLocation = loc;
+        }}
+      >
+        <ListContextProvider value={contextValue}>
+          <DatagridDX<StringIdRecord> rowClick="edit">
+            <Column dataField="title" caption="Title" />
+          </DatagridDX>
+        </ListContextProvider>
+      </TestMemoryRouter>
+    );
+
+    expect(await screen.findByText('Special Item')).toBeInTheDocument();
+    const row = container.querySelector('.dx-data-row')!;
+    fireEvent.click(row);
+
+    await waitFor(() => {
+      expect(currentLocation?.pathname).toBe('/items/client-special%2Fuuid-99');
+    });
+  });
+
+  // Scenario T: Only data rows navigate
+  it('Scenario T: non-data row clicks do not trigger navigation', async () => {
+    const records: Customer[] = [{ id: 1, name: 'Alice', email: 'alice@example.com' }];
+    const contextValue = createMockListContext<Customer>({
+      data: records,
+      total: 1,
+      resource: 'customers',
+    });
+    let currentLocation: RouterLocation | undefined;
+
+    const { container } = render(
+      <TestMemoryRouter
+        locationCallback={(loc) => {
+          currentLocation = loc;
+        }}
+      >
+        <ListContextProvider value={contextValue}>
+          <DatagridDX<Customer> rowClick="edit">
+            <Column dataField="name" caption="Name" />
+          </DatagridDX>
+        </ListContextProvider>
+      </TestMemoryRouter>
+    );
+
+    expect(await screen.findByText('Alice')).toBeInTheDocument();
+    const initialPath = currentLocation?.pathname;
+
+    const headerRow = container.querySelector('.dx-header-row')!;
+    fireEvent.click(headerRow);
+
+    expect(currentLocation?.pathname).toBe(initialPath);
+  });
+
+  // Scenario U: Selection checkbox click does not navigate
+  it('Scenario U: clicking selection checkbox toggles selection without navigating', async () => {
+    const records: Customer[] = [{ id: 1, name: 'Alice', email: 'alice@example.com' }];
+    const onSelect = vi.fn();
+    const contextValue = createMockListContext<Customer>({
+      data: records,
+      total: 1,
+      selectedIds: [],
+      onSelect,
+      resource: 'customers',
+    });
+    let currentLocation: RouterLocation | undefined;
+
+    const { container } = render(
+      <TestMemoryRouter
+        locationCallback={(loc) => {
+          currentLocation = loc;
+        }}
+      >
+        <ListContextProvider value={contextValue}>
+          <DatagridDX<Customer> selection rowClick="edit">
+            <Column dataField="name" caption="Name" />
+          </DatagridDX>
+        </ListContextProvider>
+      </TestMemoryRouter>
+    );
+
+    expect(await screen.findByText('Alice')).toBeInTheDocument();
+    const initialPath = currentLocation?.pathname;
+
+    const checkbox = container.querySelector('.dx-data-row .dx-select-checkbox')!;
+    expect(checkbox).toBeInTheDocument();
+    fireEvent.click(checkbox);
+
+    // Selection was triggered
+    await waitFor(() => {
+      expect(onSelect).toHaveBeenCalledWith([1]);
+    });
+    // Navigation did NOT occur
+    expect(currentLocation?.pathname).toBe(initialPath);
+  });
+
+  // Scenario V: Native onRowClick composition
+  it('Scenario V: invokes consumer onRowClick handler alongside navigation', async () => {
+    const records: Customer[] = [{ id: 1, name: 'Alice', email: 'alice@example.com' }];
+    const consumerOnRowClick = vi.fn();
+    const contextValue = createMockListContext<Customer>({
+      data: records,
+      total: 1,
+      resource: 'customers',
+    });
+    let currentLocation: RouterLocation | undefined;
+
+    const { container } = render(
+      <TestMemoryRouter
+        locationCallback={(loc) => {
+          currentLocation = loc;
+        }}
+      >
+        <ListContextProvider value={contextValue}>
+          <DatagridDX<Customer> rowClick="edit" onRowClick={consumerOnRowClick}>
+            <Column dataField="name" caption="Name" />
+          </DatagridDX>
+        </ListContextProvider>
+      </TestMemoryRouter>
+    );
+
+    expect(await screen.findByText('Alice')).toBeInTheDocument();
+    const row = container.querySelector('.dx-data-row')!;
+    fireEvent.click(row);
+
+    expect(consumerOnRowClick).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(currentLocation?.pathname).toBe('/customers/1');
+    });
+  });
+
+  // Scenario W: Consumer cancellation via e.handled = true
+  it('Scenario W: consumer setting e.handled = true aborts navigation', async () => {
+    const records: Customer[] = [{ id: 1, name: 'Alice', email: 'alice@example.com' }];
+    const consumerOnRowClick = vi.fn((e) => {
+      e.handled = true;
+    });
+    const contextValue = createMockListContext<Customer>({
+      data: records,
+      total: 1,
+      resource: 'customers',
+    });
+    let currentLocation: RouterLocation | undefined;
+
+    const { container } = render(
+      <TestMemoryRouter
+        locationCallback={(loc) => {
+          currentLocation = loc;
+        }}
+      >
+        <ListContextProvider value={contextValue}>
+          <DatagridDX<Customer> rowClick="edit" onRowClick={consumerOnRowClick}>
+            <Column dataField="name" caption="Name" />
+          </DatagridDX>
+        </ListContextProvider>
+      </TestMemoryRouter>
+    );
+
+    expect(await screen.findByText('Alice')).toBeInTheDocument();
+    const initialPath = currentLocation?.pathname;
+    const row = container.querySelector('.dx-data-row')!;
+    fireEvent.click(row);
+
+    expect(consumerOnRowClick).toHaveBeenCalledTimes(1);
+    expect(currentLocation?.pathname).toBe(initialPath);
   });
 });

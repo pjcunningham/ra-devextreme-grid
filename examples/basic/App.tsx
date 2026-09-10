@@ -3,6 +3,13 @@ import {
   Admin,
   Resource,
   List,
+  Edit,
+  Show,
+  SimpleForm,
+  SimpleShowLayout,
+  TextInput,
+  TextField,
+  useListContext,
   defaultLightTheme,
   type DataProvider,
   type GetListParams,
@@ -148,12 +155,65 @@ const dataProvider: DataProvider = {
     return { data: records as unknown as RecordType[] };
   },
   getManyReference: async () => ({ data: [], total: 0 }),
-  create: () => Promise.reject(new Error('Read-only in Phase 2')),
-  update: () => Promise.reject(new Error('Read-only in Phase 2')),
-  updateMany: () => Promise.reject(new Error('Read-only in Phase 2')),
-  delete: () => Promise.reject(new Error('Read-only in Phase 2')),
-  deleteMany: () => Promise.reject(new Error('Read-only in Phase 2')),
+  create: () => Promise.reject(new Error('Read-only in Phase 3')),
+  update: async <RecordType extends RaRecord = RaRecord>(
+    _resource: string,
+    params: { id: string | number; data: Partial<Customer>; previousData?: Customer }
+  ) => {
+    const index = sampleCustomers.findIndex((c) => c.id === Number(params.id));
+    if (index === -1) {
+      throw new Error('Not found');
+    }
+    sampleCustomers[index] = { ...sampleCustomers[index], ...params.data } as Customer;
+    return { data: sampleCustomers[index] as unknown as RecordType };
+  },
+  updateMany: () => Promise.reject(new Error('Read-only in Phase 3')),
+  delete: () => Promise.reject(new Error('Read-only in Phase 3')),
+  deleteMany: () => Promise.reject(new Error('Read-only in Phase 3')),
 };
+
+const SelectedCount = (): React.JSX.Element => {
+  const { selectedIds } = useListContext<Customer>();
+  const count = selectedIds?.length ?? 0;
+
+  return (
+    <div
+      style={{
+        padding: '8px 12px',
+        marginBottom: '8px',
+        backgroundColor: '#f0f4f8',
+        borderRadius: '4px',
+        fontSize: '14px',
+      }}
+    >
+      <strong>Selected records:</strong> {count}{' '}
+      {count > 0 && <span>(IDs: {selectedIds.join(', ')})</span>}
+    </div>
+  );
+};
+
+export const CustomerEdit = (): React.JSX.Element => (
+  <Edit title="Edit Customer">
+    <SimpleForm>
+      <TextInput source="name" />
+      <TextInput source="company" />
+      <TextInput source="city" />
+      <TextInput source="country" />
+    </SimpleForm>
+  </Edit>
+);
+
+export const CustomerShow = (): React.JSX.Element => (
+  <Show title="Customer Details">
+    <SimpleShowLayout>
+      <TextField source="id" />
+      <TextField source="name" />
+      <TextField source="company" />
+      <TextField source="city" />
+      <TextField source="country" />
+    </SimpleShowLayout>
+  </Show>
+);
 
 export const CustomerList = (): React.JSX.Element => (
   <List
@@ -169,7 +229,8 @@ export const CustomerList = (): React.JSX.Element => (
       />
     }
   >
-    <DatagridDX<Customer> showBorders={true} showRowLines={true}>
+    <SelectedCount />
+    <DatagridDX<Customer> selection rowClick="edit" showBorders={true} showRowLines={true}>
       <Column dataField="id" caption="ID" width={70} />
       <Column dataField="name" caption="Customer Name" />
       <Column dataField="company" caption="Company" />
@@ -182,7 +243,7 @@ export const CustomerList = (): React.JSX.Element => (
 export function App(): React.JSX.Element {
   return (
     <Admin dataProvider={dataProvider} theme={defaultLightTheme}>
-      <Resource name="customers" list={CustomerList} />
+      <Resource name="customers" list={CustomerList} edit={CustomerEdit} show={CustomerShow} />
     </Admin>
   );
 }
