@@ -87,7 +87,10 @@ def create_app(
             response_options["summary"] = summary
         if group_count is not None:
             response_options["group_count"] = group_count
-        return GridResponse(data=records, **response_options)
+        return GridResponse.model_validate(
+            {"data": records, **response_options},
+            context={"load_options": request.load_options},
+        )
 
     return app
 

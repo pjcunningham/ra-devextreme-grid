@@ -3,6 +3,8 @@ import type { DataProvider, RaRecord } from 'react-admin';
 export interface GetGridSortDescriptor {
   selector: string;
   desc: boolean;
+  /** Native parent-group sort metadata on lazy leaf requests. */
+  isExpanded?: boolean;
 }
 
 export interface GetGridGroupDescriptor {
@@ -15,8 +17,16 @@ export type GetGridGroupKey = string | number | boolean | null;
 
 export interface GetGridGroupItem<RecordType extends RaRecord = RaRecord> {
   key: GetGridGroupKey;
-  items: Array<RecordType | GetGridGroupItem<RecordType>>;
+  items: Array<RecordType | GetGridGroupItem<RecordType>> | null;
+  /** Complete matching record count; required when items is null. */
+  count?: number;
   summary?: GetGridSummaryValue[];
+}
+
+/** Disambiguates native scope predicates from case-insensitive user filters. */
+export interface GetGridGroupPagingContext {
+  group: GetGridGroupDescriptor[];
+  filter: unknown[] | null;
 }
 
 export type GetGridSummaryType = 'count' | 'sum' | 'avg' | 'min' | 'max';
@@ -42,6 +52,8 @@ export interface GetGridLoadOptions {
   filter?: unknown[] | null;
   totalSummary?: GetGridSummaryDescriptor[];
   groupSummary?: GetGridSummaryDescriptor[];
+  /** Present only for an active group-paging query, including independent leaf loads. */
+  groupPagingContext?: GetGridGroupPagingContext;
 }
 
 export interface GetGridParams {

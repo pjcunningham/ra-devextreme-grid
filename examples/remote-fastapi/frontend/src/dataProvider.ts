@@ -36,7 +36,11 @@ export const dataProvider: DatagridDXDataProvider = {
     resource: string,
     params: GetGridParams
   ): Promise<GetGridResult<RecordType>> {
-    if (resource !== 'remote-customers' && resource !== 'grouped-remote-customers') {
+    if (
+      !['remote-customers', 'grouped-remote-customers', 'group-paged-remote-customers'].includes(
+        resource
+      )
+    ) {
       throw new Error(`Unsupported resource: ${resource}`);
     }
 
@@ -50,6 +54,14 @@ export const dataProvider: DatagridDXDataProvider = {
       loadOptions: {
         ...params.loadOptions,
         ...(normalizedFilter !== undefined ? { filter: normalizedFilter } : {}),
+        ...(params.loadOptions.groupPagingContext
+          ? {
+              groupPagingContext: {
+                ...params.loadOptions.groupPagingContext,
+                filter: normalizeDateOnlyFilter(params.loadOptions.groupPagingContext.filter),
+              },
+            }
+          : {}),
       },
     };
 

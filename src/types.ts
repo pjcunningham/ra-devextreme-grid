@@ -150,12 +150,12 @@ export type DatagridDXRemoteSummaryOptions = Omit<
   skipEmptyValues?: true;
 };
 
-/** Complete expanded server groups only; loaded groups may still collapse locally. */
+/** autoExpandAll must be true in complete-tree mode, false with groupPaging. */
 export type DatagridDXRemoteGroupingOptions = Omit<
   NonNullable<IDataGridOptions['grouping']>,
   'autoExpandAll'
 > & {
-  autoExpandAll?: true;
+  autoExpandAll?: boolean;
 };
 
 /**
@@ -210,6 +210,8 @@ export type DatagridDXRemoteProps<RecordType extends RaRecord = RaRecord> = Omit
   | 'syncLookupFilterValues'
 > & {
   resource?: string;
+  /** Opt into lazy remote groups; requires autoExpandAll=false and no expandAll(). */
+  groupPaging?: boolean;
   paging?: Omit<NonNullable<IDataGridOptions<RecordType, RecordType['id']>['paging']>, 'enabled'>;
   grouping?: DatagridDXRemoteGroupingOptions;
   summary?: DatagridDXRemoteSummaryOptions;

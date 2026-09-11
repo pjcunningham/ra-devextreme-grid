@@ -12,7 +12,6 @@ const e2eDbPath = path
 export default defineConfig({
   testDir: './tests/e2e',
   globalSetup: './tests/e2e/global-setup.ts',
-  globalTeardown: './tests/e2e/global-teardown.ts',
   fullyParallel: false,
   workers: 1,
   retries: process.env.CI ? 1 : 0,
@@ -39,7 +38,7 @@ export default defineConfig({
       command:
         'uv run --directory examples/remote-fastapi/backend uvicorn app.main:app --host 127.0.0.1 --port 8000',
       url: 'http://127.0.0.1:8000/openapi.json',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: !process.env.CI && !process.env.GRID_E2E_FRESH,
       timeout: 120_000,
       env: {
         GRID_DATABASE_URL: `sqlite:///${e2eDbPath}`,
@@ -48,7 +47,7 @@ export default defineConfig({
     {
       command: 'pnpm dev:remote-fastapi',
       url: 'http://127.0.0.1:5174',
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: !process.env.CI && !process.env.GRID_E2E_FRESH,
       timeout: 120_000,
     },
   ],

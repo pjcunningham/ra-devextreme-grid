@@ -4,6 +4,7 @@ import { Column, Summary, TotalItem } from 'devextreme-react/data-grid';
 import { DatagridDXRemote } from '../../../../src/index';
 import { dataProvider, onGridSuccess } from './dataProvider';
 import { GroupedRemoteCustomerList } from './GroupedRemoteCustomerList';
+import { GroupPagedRemoteCustomerList } from './GroupPagedRemoteCustomerList';
 
 export interface Customer extends RaRecord {
   id: number;
@@ -176,6 +177,11 @@ export function App(): React.JSX.Element {
         name="grouped-remote-customers"
         list={GroupedRemoteCustomerList}
         options={{ label: 'Grouped Remote Customers' }}
+      />
+      <Resource
+        name="group-paged-remote-customers"
+        list={GroupPagedRemoteCustomerList}
+        options={{ label: 'Group-Paged Remote Customers' }}
       />
     </Admin>
   );

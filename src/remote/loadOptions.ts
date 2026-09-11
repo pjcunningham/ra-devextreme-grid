@@ -1,6 +1,7 @@
 import type { LoadOptions } from 'devextreme/common/data';
 import type {
   GetGridGroupDescriptor,
+  GetGridGroupPagingContext,
   GetGridLoadOptions,
   GetGridSortDescriptor,
   GetGridSummaryDescriptor,
@@ -63,7 +64,7 @@ function isActive(value: unknown): boolean {
   return value != null && !(Array.isArray(value) && value.length === 0);
 }
 
-function normalizeSort(value: unknown): GetGridSortDescriptor[] {
+function normalizeSort(value: unknown, groupPaging = false): GetGridSortDescriptor[] {
   return (Array.isArray(value) ? value : [value]).map((item: unknown) => {
     if (typeof item === 'string' && item.trim()) return { selector: item, desc: false };
     if (item && typeof item === 'object' && !Array.isArray(item) && 'selector' in item) {
@@ -73,7 +74,16 @@ function normalizeSort(value: unknown): GetGridSortDescriptor[] {
         item.selector.trim() &&
         (desc === undefined || typeof desc === 'boolean')
       ) {
-        return { selector: item.selector, desc: desc ?? false };
+        if (groupPaging && 'isExpanded' in item && typeof item.isExpanded !== 'boolean') {
+          throw new Error('DatagridDXRemote sort isExpanded must be boolean.');
+        }
+        return {
+          selector: item.selector,
+          desc: desc ?? false,
+          ...(groupPaging && 'isExpanded' in item
+            ? { isExpanded: item.isExpanded as boolean }
+            : {}),
+        };
       }
     }
     throw new Error(
@@ -82,7 +92,7 @@ function normalizeSort(value: unknown): GetGridSortDescriptor[] {
   });
 }
 
-function normalizeGroup(value: unknown): GetGridGroupDescriptor[] {
+export function normalizeGroup(value: unknown, groupPaging = false): GetGridGroupDescriptor[] {
   const items = Array.isArray(value) ? value : [value];
   if (items.length > MAX_GROUP_LEVELS) {
     throw new Error(`DatagridDXRemote group supports at most ${MAX_GROUP_LEVELS} levels.`);
@@ -113,14 +123,22 @@ function normalizeGroup(value: unknown): GetGridGroupDescriptor[] {
         'DatagridDXRemote group requires a nonempty string selector and explicit boolean desc and isExpanded.'
       );
     }
-    if (index < items.length - 1 && !isExpanded) {
+    if (groupPaging && isExpanded) {
+      throw new Error(
+        'DatagridDXRemote groupPaging requires collapsed descriptors; do not use expandAll().'
+      );
+    }
+    if (!groupPaging && index < items.length - 1 && !isExpanded) {
       throw new Error('DatagridDXRemote group requires isExpanded:true on every nonfinal level.');
     }
     return { selector, desc, isExpanded };
   });
 }
 
-export function normalizeLoadOptions<T>(options: LoadOptions<T>): GetGridLoadOptions {
+export function normalizeLoadOptions<T>(
+  options: LoadOptions<T>,
+  capabilities: { groupPaging?: boolean; groupPagingContext?: GetGridGroupPagingContext } = {}
+): GetGridLoadOptions {
   for (const field of [
     'select',
     'expand',
@@ -143,7 +161,37 @@ export function normalizeLoadOptions<T>(options: LoadOptions<T>): GetGridLoadOpt
   }
 
   const result: GetGridLoadOptions = {};
-  if (isActive(options.group)) result.group = normalizeGroup(options.group);
+  const { groupPaging = false, groupPagingContext } = capabilities;
+  if (groupPagingContext) {
+    if (!groupPaging) throw new Error('DatagridDXRemote groupPagingContext requires groupPaging.');
+    const group = normalizeGroup(groupPagingContext.group, true);
+    if (!group.length)
+      throw new Error('DatagridDXRemote groupPagingContext requires configured groups.');
+    const filter = groupPagingContext.filter;
+    rejectFunctions(filter);
+    if (filter !== null && !Array.isArray(filter)) {
+      throw new Error('DatagridDXRemote groupPagingContext filter must be an array or null.');
+    }
+    result.groupPagingContext = { group, filter };
+  }
+  const lazy = result.groupPagingContext !== undefined;
+  if (isActive(options.group)) {
+    if (groupPaging && !lazy)
+      throw new Error('DatagridDXRemote grouped paging requires groupPagingContext.');
+    result.group = normalizeGroup(options.group, lazy);
+    if (lazy && result.group.length !== 1) {
+      throw new Error('DatagridDXRemote groupPaging requests exactly one collapsed group level.');
+    }
+    if (
+      lazy &&
+      !result.groupPagingContext!.group.some(
+        (descriptor) =>
+          descriptor.selector === result.group![0]!.selector &&
+          descriptor.desc === result.group![0]!.desc
+      )
+    )
+      throw new Error('DatagridDXRemote requested group must match groupPagingContext.');
+  }
   if (options.requireGroupCount !== undefined) {
     if (typeof options.requireGroupCount !== 'boolean') {
       throw new Error('DatagridDXRemote requireGroupCount must be boolean.');
@@ -151,10 +199,10 @@ export function normalizeLoadOptions<T>(options: LoadOptions<T>): GetGridLoadOpt
     if (options.requireGroupCount && !result.group) {
       throw new Error('DatagridDXRemote requireGroupCount requires an active group.');
     }
-    if (result.group) result.requireGroupCount = options.requireGroupCount;
+    if (result.group || lazy) result.requireGroupCount = options.requireGroupCount;
   }
   if (isActive(options.groupSummary)) {
-    if (!result.group) {
+    if (!result.group && !lazy) {
       throw new Error('DatagridDXRemote groupSummary requires an active group.');
     }
     result.groupSummary = normalizeTotalSummary(options.groupSummary, 'groupSummary');
@@ -163,7 +211,7 @@ export function normalizeLoadOptions<T>(options: LoadOptions<T>): GetGridLoadOpt
     const value = options[field];
     rejectFunctions(value);
     if (value !== undefined) {
-      if (result.group) {
+      if (result.group && !lazy) {
         throw new Error(`DatagridDXRemote grouped loads do not support explicit ${field}.`);
       }
       if (
@@ -173,6 +221,9 @@ export function normalizeLoadOptions<T>(options: LoadOptions<T>): GetGridLoadOpt
         !Number.isInteger(value)
       ) {
         throw new Error(`DatagridDXRemote ${field} must be a finite non-negative integer.`);
+      }
+      if (lazy && field === 'take' && (value === 0 || value > 100)) {
+        throw new Error('DatagridDXRemote groupPaging take must be between 1 and 100.');
       }
       result[field] = value;
     }
@@ -185,7 +236,7 @@ export function normalizeLoadOptions<T>(options: LoadOptions<T>): GetGridLoadOpt
     result.requireTotalCount = options.requireTotalCount;
   }
   rejectFunctions(options.sort);
-  if (options.sort != null) result.sort = normalizeSort(options.sort);
+  if (options.sort != null) result.sort = normalizeSort(options.sort, lazy);
   rejectFunctions(options.filter);
   if (options.filter !== undefined) {
     if (options.filter !== null && !Array.isArray(options.filter)) {

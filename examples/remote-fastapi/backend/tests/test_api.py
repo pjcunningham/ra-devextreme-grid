@@ -596,6 +596,7 @@ def test_openapi_schema(client: TestClient):
         "group",
         "groupSummary",
         "requireGroupCount",
+        "groupPagingContext",
     }
     assert set(components["GridSortDescriptor"]["properties"]) == {"selector", "desc"}
     assert set(components["GridSummaryDescriptor"]["properties"]) == {
@@ -612,14 +613,40 @@ def test_openapi_schema(client: TestClient):
         "desc",
         "isExpanded",
     }
-    assert set(components["GridGroupItem"]["properties"]) == {"key", "items", "summary"}
+    assert set(components["GridGroupPagingContext"]["properties"]) == {
+        "group",
+        "filter",
+    }
+    assert set(components["GridGroupPagingContext"]["required"]) == {"group", "filter"}
+    assert components["GridGroupPagingContext"]["properties"]["group"]["minItems"] == 1
+    assert components["GridGroupPagingContext"]["properties"]["group"]["maxItems"] == 4
+    assert set(components["GridPagingSortDescriptor"]["properties"]) == {
+        "selector",
+        "desc",
+        "isExpanded",
+    }
+    assert set(components["GridGroupItem"]["properties"]) == {
+        "key",
+        "items",
+        "summary",
+        "count",
+    }
     assert set(components["GridGroupItem"]["required"]) == {"key", "items"}
+    assert {
+        item["type"]
+        for item in components["GridGroupItem"]["properties"]["items"]["anyOf"]
+    } == {
+        "array",
+        "null",
+    }
     for name in (
         "GridRequest",
         "GridLoadOptions",
         "GridSortDescriptor",
+        "GridPagingSortDescriptor",
         "GridSummaryDescriptor",
         "GridGroupDescriptor",
+        "GridGroupPagingContext",
         "GridGroupItem",
     ):
         assert components[name]["additionalProperties"] is False

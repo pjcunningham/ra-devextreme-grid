@@ -1,26 +1,43 @@
 import type dxDataGrid from 'devextreme/ui/data_grid';
 import type { RaRecord } from 'react-admin';
-import { MAX_GROUP_LEVELS } from './loadOptions';
+import { MAX_GROUP_LEVELS, normalizeGroup } from './loadOptions';
+import type { GetGridGroupPagingContext } from './types';
+
+export function readGroupPagingContext<RecordType extends RaRecord>(
+  grid: dxDataGrid<RecordType, RecordType['id']> | null
+): GetGridGroupPagingContext | undefined {
+  const groups = grid?.getDataSource()?.group();
+  if (!groups || (Array.isArray(groups) && groups.length === 0)) return undefined;
+  return {
+    group: normalizeGroup(groups, true),
+    filter: grid!.getCombinedFilter(true) ?? null,
+  };
+}
 
 /** Guard semantic options that native nested components can set before the first load. */
 export function validateGroupingOptions<RecordType extends RaRecord>(
-  grid: dxDataGrid<RecordType, RecordType['id']> | null
+  grid: dxDataGrid<RecordType, RecordType['id']> | null,
+  groupPaging = false
 ): void {
   if (!grid) return;
-  if (grid.option('grouping.autoExpandAll') !== true) {
+  if (grid.option('grouping.autoExpandAll') !== !groupPaging) {
     throw new Error(
-      'DatagridDXRemote grouping.autoExpandAll must be true; collapsed server groups require Phase 8C.'
+      `DatagridDXRemote grouping.autoExpandAll must be ${!groupPaging} with groupPaging=${groupPaging}.`
     );
   }
   const operations = grid.option('remoteOperations');
   if (
     !operations ||
     typeof operations !== 'object' ||
-    operations.groupPaging !== false ||
-    operations.grouping !== true
+    operations.groupPaging !== groupPaging ||
+    operations.grouping !== true ||
+    (groupPaging &&
+      [operations.paging, operations.sorting, operations.filtering, operations.summary].some(
+        (value) => value !== true
+      ))
   ) {
     throw new Error(
-      'DatagridDXRemote requires remote grouping with groupPaging=false (Phase 8C is unsupported).'
+      `DatagridDXRemote requires remote grouping with groupPaging=${groupPaging}${groupPaging ? ' and all operations remote' : ''}.`
     );
   }
   const summarySort = grid.option('sortByGroupSummaryInfo');
@@ -35,13 +52,20 @@ export function validateGroupingOptions<RecordType extends RaRecord>(
     if (!Array.isArray(columns)) return;
     for (const column of columns) {
       if (!column || typeof column !== 'object') continue;
-      if (column.autoExpandGroup === false) {
-        throw new Error('DatagridDXRemote column.autoExpandGroup=false requires Phase 8C.');
+      if (!groupPaging && column.autoExpandGroup === false) {
+        throw new Error('DatagridDXRemote column.autoExpandGroup=false requires groupPaging.');
       }
       if (typeof column.calculateGroupValue === 'function') {
         throw new Error('DatagridDXRemote calculateGroupValue must be a string, not a function.');
       }
-      if (typeof column.groupIndex === 'number' && column.groupIndex >= 0) levels += 1;
+      if (typeof column.groupIndex === 'number' && column.groupIndex >= 0) {
+        levels += 1;
+        if (groupPaging && column.autoExpandGroup !== false) {
+          throw new Error(
+            `DatagridDXRemote grouped column ${String(column.name ?? column.dataField ?? column.caption ?? column.groupIndex)} must set autoExpandGroup=false with groupPaging.`
+          );
+        }
+      }
       inspectColumns(column.columns);
     }
   };

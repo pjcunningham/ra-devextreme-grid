@@ -3,7 +3,7 @@ import type { LoadResultObject } from 'devextreme/common/data';
 import type { RaRecord } from 'react-admin';
 import { normalizeLoadOptions } from './loadOptions';
 import { validateGridData, validateSummaryResult } from './groupResults';
-import type { DatagridDXDataProvider } from './types';
+import type { DatagridDXDataProvider, GetGridGroupPagingContext } from './types';
 
 const missingMethod =
   'DatagridDXRemote requires the React-Admin dataProvider to implement getGrid(resource, params).';
@@ -12,17 +12,24 @@ export function createGridStore<RecordType extends RaRecord>({
   resource,
   dataProvider,
   validateBeforeLoad,
+  groupPaging = false,
+  getGroupPagingContext,
 }: {
   resource: string;
   dataProvider: DatagridDXDataProvider;
   validateBeforeLoad?: () => void;
+  groupPaging?: boolean;
+  getGroupPagingContext?: () => GetGridGroupPagingContext | undefined;
 }): CustomStore<RecordType, RecordType['id']> {
   return new CustomStore<RecordType, RecordType['id']>({
     key: 'id',
     loadMode: 'processed',
     load: async (options) => {
       validateBeforeLoad?.();
-      const loadOptions = normalizeLoadOptions(options);
+      const loadOptions = normalizeLoadOptions(options, {
+        groupPaging,
+        groupPagingContext: getGroupPagingContext?.(),
+      });
       // React-Admin's get trap returns a function even for absent methods.
       if (!('getGrid' in dataProvider) || typeof dataProvider.getGrid !== 'function') {
         throw new Error(missingMethod);
@@ -64,10 +71,20 @@ export function createGridStore<RecordType extends RaRecord>({
         throw new Error('DatagridDXRemote getGrid returned an unsolicited groupCount.');
       }
       validateSummaryResult(summary, loadOptions.totalSummary?.length, 'summary');
+      const configuredGroups = loadOptions.groupPagingContext?.group;
+      const groupDepth = loadOptions.group?.length
+        ? configuredGroups
+          ? configuredGroups.length -
+            configuredGroups.findIndex(
+              (descriptor) => descriptor.selector === loadOptions.group![0]!.selector
+            )
+          : loadOptions.group.length
+        : 0;
       validateGridData(
         result.data,
-        loadOptions.group?.length ?? 0,
-        loadOptions.groupSummary?.length
+        groupDepth,
+        loadOptions.groupSummary?.length,
+        loadOptions.groupPagingContext !== undefined
       );
       // Requested-depth validation guarantees homogeneous arrays at every native group level.
       const converted: LoadResultObject<RecordType> = {

@@ -1,0 +1,2164 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > compares unequal parent count interpretation: childCount=false > count expand A 1`] = `
+{
+  "pageCount": 4,
+  "pageIndex": 0,
+  "requests": [
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":["country","=","A"],"group":[{"selector":"company","desc":false,"isExpanded":false}]}",
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":2,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":["country","=","A"],"skip":0,"take":1}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > compares unequal parent count interpretation: childCount=false > count expand X 1`] = `
+{
+  "pageCount": 10,
+  "pageIndex": 0,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":2,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":["country","=","A"],"skip":0,"take":1}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > compares unequal parent count interpretation: childCount=false > count initial 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [
+    "{"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":3,"userData":{},"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "a",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > compares unequal parent count interpretation: childCount=false > count page 2 1`] = `
+{
+  "pageCount": 10,
+  "pageIndex": 1,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"searchOperation":"contains","searchValue":null,"skip":1,"take":1,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":["country","=","A"],"skip":0,"take":1}",
+    "{"sort":[{"selector":"country","desc":false,"isExpanded":false},{"selector":"company","desc":false,"isExpanded":false}],"group":null,"searchOperation":"contains","searchValue":null,"skip":0,"take":1,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false,"requireTotalCount":false,"filter":[["country","=","A"],"and",["company","=","X"]]}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 1,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > compares unequal parent count interpretation: childCount=false > count page 3 1`] = `
+{
+  "pageCount": 10,
+  "pageIndex": 2,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"searchOperation":"contains","searchValue":null,"skip":1,"take":1,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":["country","=","A"],"skip":0,"take":1}",
+    "{"sort":[{"selector":"country","desc":false,"isExpanded":false},{"selector":"company","desc":false,"isExpanded":false}],"group":null,"searchOperation":"contains","searchValue":null,"skip":1,"take":1,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false,"requireTotalCount":false,"filter":[["country","=","A"],"and",["company","=","X"]]}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 2,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > compares unequal parent count interpretation: childCount=true > count expand A 1`] = `
+{
+  "pageCount": 4,
+  "pageIndex": 0,
+  "requests": [
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":["country","=","A"],"group":[{"selector":"company","desc":false,"isExpanded":false}]}",
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":2,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":["country","=","A"],"skip":0,"take":1}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > compares unequal parent count interpretation: childCount=true > count expand X 1`] = `
+{
+  "pageCount": 10,
+  "pageIndex": 0,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":2,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":["country","=","A"],"skip":0,"take":1}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > compares unequal parent count interpretation: childCount=true > count initial 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [
+    "{"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":3,"userData":{},"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "a",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > compares unequal parent count interpretation: childCount=true > count page 2 1`] = `
+{
+  "pageCount": 10,
+  "pageIndex": 1,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"searchOperation":"contains","searchValue":null,"skip":1,"take":1,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":["country","=","A"],"skip":0,"take":1}",
+    "{"sort":[{"selector":"country","desc":false,"isExpanded":false},{"selector":"company","desc":false,"isExpanded":false}],"group":null,"searchOperation":"contains","searchValue":null,"skip":0,"take":1,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false,"requireTotalCount":false,"filter":[["country","=","A"],"and",["company","=","X"]]}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 1,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > compares unequal parent count interpretation: childCount=true > count page 3 1`] = `
+{
+  "pageCount": 10,
+  "pageIndex": 2,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"searchOperation":"contains","searchValue":null,"skip":1,"take":1,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":["country","=","A"],"skip":0,"take":1}",
+    "{"sort":[{"selector":"country","desc":false,"isExpanded":false},{"selector":"company","desc":false,"isExpanded":false}],"group":null,"searchOperation":"contains","searchValue":null,"skip":1,"take":1,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false,"requireTotalCount":false,"filter":[["country","=","A"],"and",["company","=","X"]]}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 2,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > loads NULL paths and uncached re-expansion > null child 1`] = `
+{
+  "pageCount": 3,
+  "pageIndex": 0,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":1,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":["country","=",null],"skip":0,"take":1}",
+    "{"sort":[{"selector":"country","desc":false,"isExpanded":false},{"selector":"company","desc":false,"isExpanded":false}],"group":null,"requireTotalCount":false,"searchOperation":"contains","searchValue":null,"take":1,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false,"filter":[["country","=",null],"and",["company","=",null]]}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": true,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        null,
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 14,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > loads NULL paths and uncached re-expansion > null collapse 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":3,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "a",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > loads NULL paths and uncached re-expansion > null parent 1`] = `
+{
+  "pageCount": 3,
+  "pageIndex": 0,
+  "requests": [
+    "{"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":3,"userData":{},"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":["country","=",null],"group":[{"selector":"company","desc":false,"isExpanded":false}]}",
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":2,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":["country","=",null],"skip":0}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": true,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        null,
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > loads NULL paths and uncached re-expansion > null re-expand 1`] = `
+{
+  "pageCount": 3,
+  "pageIndex": 0,
+  "requests": [
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":["country","=",null],"group":[{"selector":"company","desc":false,"isExpanded":false}]}",
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":1,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":["country","=",null],"skip":0,"take":1}",
+    "{"sort":[{"selector":"country","desc":false,"isExpanded":false},{"selector":"company","desc":false,"isExpanded":false}],"group":null,"requireTotalCount":false,"searchOperation":"contains","searchValue":null,"take":1,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false,"filter":[["country","=",null],"and",["company","=",null]]}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": true,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        null,
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 14,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > proves that native count-refresh load options cannot identify exact group scope alone > collision one expand 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [
+    "{"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":5,"userData":{},"filter":["company","=","X"],"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":1,"userData":{},"filter":["company","=","X"],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"sort":[{"selector":"country","desc":false,"isExpanded":false}],"group":null,"requireTotalCount":false,"searchOperation":"contains","searchValue":null,"take":4,"userData":{},"filter":[["company","=","X"],"and",["country","=","A"]],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false}",
+  ],
+  "totalCount": 7,
+  "visible": [
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 1,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 2,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 3,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 4,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > proves that native count-refresh load options cannot identify exact group scope alone > collision one sort 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [
+    "{"skip":0,"take":1,"requireGroupCount":false,"requireTotalCount":true,"filter":[["country","=","A"],"and",["company","=","X"]],"group":null}",
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":[[["country","<","A"],"or",["country","=",null]],"and",["company","=","X"]],"group":[{"selector":"country","desc":false,"isExpanded":false}]}",
+    "{"sort":[{"selector":"amount","desc":true}],"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":1,"userData":{},"filter":["company","=","X"],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"sort":[{"selector":"country","desc":false,"isExpanded":false},{"selector":"amount","desc":true}],"group":null,"requireTotalCount":false,"searchOperation":"contains","searchValue":null,"take":4,"userData":{},"filter":[["company","=","X"],"and",["country","=","A"]],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false}",
+  ],
+  "totalCount": 7,
+  "visible": [
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 15,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 8,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 5,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 4,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > proves that native count-refresh load options cannot identify exact group scope alone > collision two expand 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [
+    "{"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":5,"userData":{},"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":["country","=","A"],"group":[{"selector":"company","desc":false,"isExpanded":false}]}",
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":2,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":["country","=","A"],"skip":0,"take":3}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+        "x",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+        "Y",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > proves that native count-refresh load options cannot identify exact group scope alone > collision two leaf 1`] = `
+{
+  "pageCount": 4,
+  "pageIndex": 0,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":2,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":["country","=","A"],"skip":0,"take":1}",
+    "{"sort":[{"selector":"country","desc":false,"isExpanded":false},{"selector":"company","desc":false,"isExpanded":false}],"group":null,"requireTotalCount":false,"searchOperation":"contains","searchValue":null,"take":2,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false,"filter":[["country","=","A"],"and",["company","=","X"]]}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 1,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 2,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > proves that native count-refresh load options cannot identify exact group scope alone > collision two sort 1`] = `
+{
+  "pageCount": 5,
+  "pageIndex": 0,
+  "requests": [
+    "{"skip":0,"take":1,"requireGroupCount":false,"requireTotalCount":true,"filter":[["country","=","A"],"and",["company","=","X"]],"group":null}",
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":[["country","=","A"],"and",[["company","<","X"],"or",["company","=",null]]],"group":[{"selector":"company","desc":false,"isExpanded":false}]}",
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":["country","=","A"],"group":[{"selector":"company","desc":false,"isExpanded":false}]}",
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":[["country","<","A"],"or",["country","=",null]],"group":[{"selector":"country","desc":false,"isExpanded":false}]}",
+    "{"sort":[{"selector":"amount","desc":true}],"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":2,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":["country","=","A"],"skip":0,"take":1}",
+    "{"sort":[{"selector":"country","desc":false,"isExpanded":false},{"selector":"company","desc":false,"isExpanded":false},{"selector":"amount","desc":true}],"group":null,"requireTotalCount":false,"searchOperation":"contains","searchValue":null,"take":2,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false,"filter":[["country","=","A"],"and",["company","=","X"]]}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 15,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 8,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=false > collapse A 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":5,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "a",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "B",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "C",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=false > expand A 1`] = `
+{
+  "pageCount": 4,
+  "pageIndex": 0,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":2,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"sort":[{"selector":"country","desc":false,"isExpanded":false}],"group":null,"requireTotalCount":false,"searchOperation":"contains","searchValue":null,"take":3,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false,"filter":["country","=","A"]}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 1,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 2,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 3,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=false > expanded next page 1`] = `
+{
+  "pageCount": 4,
+  "pageIndex": 1,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"searchOperation":"contains","searchValue":null,"skip":1,"take":1,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"sort":[{"selector":"country","desc":false,"isExpanded":false}],"group":null,"searchOperation":"contains","searchValue":null,"skip":3,"take":4,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false,"requireTotalCount":false,"filter":["country","=","A"]}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 4,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 5,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 6,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 7,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=false > filter 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [
+    "{"skip":0,"take":1,"requireGroupCount":false,"requireTotalCount":true,"filter":[["country","=","A"],"and",["active","=",true]],"group":null}",
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":[[["country","<","A"],"or",["country","=",null]],"and",["active","=",true]],"group":[{"selector":"country","desc":false,"isExpanded":false}]}",
+    "{"sort":null,"filter":["active","=",true],"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":1,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"sort":[{"selector":"country","desc":false,"isExpanded":false}],"filter":[["active","=",true],"and",["country","=","A"]],"group":null,"requireTotalCount":false,"searchOperation":"contains","searchValue":null,"take":4,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false}",
+  ],
+  "totalCount": 8,
+  "visible": [
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 1,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 3,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 5,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 7,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=false > filtered expand A 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [],
+  "totalCount": 8,
+  "visible": [
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 1,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 3,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 5,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 7,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=false > first page 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "a",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "B",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "C",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=false > group descending 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [
+    "{"skip":0,"take":1,"requireGroupCount":false,"requireTotalCount":true,"filter":[["country","=","A"],"and",["active","=",true]],"group":null}",
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":[["country",">","A"],"and",["active","=",true]],"group":[{"selector":"country","desc":true,"isExpanded":false}]}",
+    "{"sort":null,"filter":["active","=",true],"group":[{"selector":"country","desc":true,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":3,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"sort":[{"selector":"country","desc":true,"isExpanded":false}],"filter":[["active","=",true],"and",["country","=","A"]],"group":null,"requireTotalCount":false,"searchOperation":"contains","searchValue":null,"take":2,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false}",
+  ],
+  "totalCount": 8,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        "D",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "B",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 1,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 3,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=false > initial 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [
+    "{"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":3,"userData":{},"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "a",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=false > next page 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 1,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"searchOperation":"contains","searchValue":null,"skip":3,"take":3,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        "B",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "C",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "D",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=false > page size 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 1,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"searchOperation":"contains","searchValue":null,"skip":5,"take":5,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        "D",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=false > re-expand A 1`] = `
+{
+  "pageCount": 4,
+  "pageIndex": 0,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":2,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"sort":[{"selector":"country","desc":false,"isExpanded":false}],"group":null,"requireTotalCount":false,"searchOperation":"contains","searchValue":null,"take":3,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false,"filter":["country","=","A"]}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 1,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 2,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 3,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=false > record descending 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [
+    "{"skip":0,"take":1,"requireGroupCount":false,"requireTotalCount":true,"filter":[["country","=","A"],"and",["active","=",true]],"group":null}",
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":[["country",">","A"],"and",["active","=",true]],"group":[{"selector":"country","desc":true,"isExpanded":false}]}",
+    "{"sort":[{"selector":"amount","desc":true}],"filter":["active","=",true],"group":[{"selector":"country","desc":true,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":3,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"sort":[{"selector":"country","desc":true,"isExpanded":false},{"selector":"amount","desc":true}],"filter":[["active","=",true],"and",["country","=","A"]],"group":null,"requireTotalCount":false,"searchOperation":"contains","searchValue":null,"take":2,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false}",
+  ],
+  "totalCount": 8,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        "D",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "B",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 15,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 7,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=false > regroup 1`] = `
+{
+  "pageCount": 1,
+  "pageIndex": 0,
+  "requests": [
+    "{"sort":[{"selector":"amount","desc":true}],"filter":["active","=",true],"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":5,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+  ],
+  "totalCount": 8,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "a",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "B",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "D",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=false > ungroup 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [
+    "{"sort":[{"selector":"amount","desc":true}],"filter":["active","=",true],"group":null,"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":5,"userData":{},"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}]}",
+  ],
+  "totalCount": 8,
+  "visible": [
+    {
+      "expanded": false,
+      "key": 15,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 13,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 11,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 9,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 7,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=true > collapse A 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":5,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "a",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "B",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "C",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=true > expand A 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":["country","=","A"],"group":[{"selector":"company","desc":false,"isExpanded":false}]}",
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":2,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":["country","=","A"],"skip":0,"take":3}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+        "x",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+        "Y",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=true > expand A/X 1`] = `
+{
+  "pageCount": 4,
+  "pageIndex": 0,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":2,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":["country","=","A"],"skip":0,"take":1}",
+    "{"sort":[{"selector":"country","desc":false,"isExpanded":false},{"selector":"company","desc":false,"isExpanded":false}],"group":null,"requireTotalCount":false,"searchOperation":"contains","searchValue":null,"take":2,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false,"filter":[["country","=","A"],"and",["company","=","X"]]}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 1,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 2,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=true > expanded next page 1`] = `
+{
+  "pageCount": 4,
+  "pageIndex": 1,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"searchOperation":"contains","searchValue":null,"skip":1,"take":1,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":["country","=","A"],"skip":0,"take":1}",
+    "{"sort":[{"selector":"country","desc":false,"isExpanded":false},{"selector":"company","desc":false,"isExpanded":false}],"group":null,"searchOperation":"contains","searchValue":null,"skip":2,"take":3,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false,"requireTotalCount":false,"filter":[["country","=","A"],"and",["company","=","X"]]}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 3,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 4,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 5,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=true > filter 1`] = `
+{
+  "pageCount": 3,
+  "pageIndex": 0,
+  "requests": [
+    "{"skip":0,"take":1,"requireGroupCount":false,"requireTotalCount":true,"filter":[["country","=","A"],"and",["company","=","X"],"and",["active","=",true]],"group":null}",
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":[[["country","=","A"],"and",[["company","<","X"],"or",["company","=",null]]],"and",["active","=",true]],"group":[{"selector":"company","desc":false,"isExpanded":false}]}",
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":[["country","=","A"],"and",["active","=",true]],"group":[{"selector":"company","desc":false,"isExpanded":false}]}",
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":[[["country","<","A"],"or",["country","=",null]],"and",["active","=",true]],"group":[{"selector":"country","desc":false,"isExpanded":false}]}",
+    "{"sort":null,"filter":["active","=",true],"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":1,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":[["country","=","A"],"and",["active","=",true]],"skip":0,"take":1}",
+    "{"sort":[{"selector":"country","desc":false,"isExpanded":false},{"selector":"company","desc":false,"isExpanded":false}],"filter":[["active","=",true],"and",[["country","=","A"],"and",["company","=","X"]]],"group":null,"requireTotalCount":false,"searchOperation":"contains","searchValue":null,"take":3,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false}",
+  ],
+  "totalCount": 8,
+  "visible": [
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 1,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 3,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 5,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=true > filtered expand A 1`] = `
+{
+  "pageCount": 3,
+  "pageIndex": 0,
+  "requests": [],
+  "totalCount": 8,
+  "visible": [
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 1,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 3,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 5,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=true > filtered expand A/X 1`] = `
+{
+  "pageCount": 3,
+  "pageIndex": 0,
+  "requests": [],
+  "totalCount": 8,
+  "visible": [
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 1,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 3,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 5,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=true > first page 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "a",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "B",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "C",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=true > group descending 1`] = `
+{
+  "pageCount": 3,
+  "pageIndex": 0,
+  "requests": [
+    "{"skip":0,"take":1,"requireGroupCount":false,"requireTotalCount":true,"filter":[["country","=","A"],"and",["company","=","X"],"and",["active","=",true]],"group":null}",
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":[[["country","=","A"],"and",[["company","<","X"],"or",["company","=",null]]],"and",["active","=",true]],"group":[{"selector":"company","desc":false,"isExpanded":false}]}",
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":[["country","=","A"],"and",["active","=",true]],"group":[{"selector":"company","desc":false,"isExpanded":false}]}",
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":[["country",">","A"],"and",["active","=",true]],"group":[{"selector":"country","desc":true,"isExpanded":false}]}",
+    "{"sort":null,"filter":["active","=",true],"group":[{"selector":"country","desc":true,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":3,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":[["country","=","A"],"and",["active","=",true]],"skip":0,"take":1}",
+    "{"sort":[{"selector":"country","desc":true,"isExpanded":false},{"selector":"company","desc":false,"isExpanded":false}],"filter":[["active","=",true],"and",[["country","=","A"],"and",["company","=","X"]]],"group":null,"requireTotalCount":false,"searchOperation":"contains","searchValue":null,"take":1,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false}",
+  ],
+  "totalCount": 8,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        "D",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "B",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 1,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=true > initial 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [
+    "{"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":3,"userData":{},"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "a",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=true > next page 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 1,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"searchOperation":"contains","searchValue":null,"skip":3,"take":3,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        "B",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "C",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "D",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=true > page size 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 1,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"searchOperation":"contains","searchValue":null,"skip":5,"take":5,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        "D",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=true > re-expand A 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":["country","=","A"],"group":[{"selector":"company","desc":false,"isExpanded":false}]}",
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":2,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":["country","=","A"],"skip":0,"take":3}",
+  ],
+  "totalCount": 15,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        null,
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+        "x",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+        "Y",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=true > record descending 1`] = `
+{
+  "pageCount": 3,
+  "pageIndex": 0,
+  "requests": [
+    "{"skip":0,"take":1,"requireGroupCount":false,"requireTotalCount":true,"filter":[["country","=","A"],"and",["company","=","X"],"and",["active","=",true]],"group":null}",
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":[[["country","=","A"],"and",[["company","<","X"],"or",["company","=",null]]],"and",["active","=",true]],"group":[{"selector":"company","desc":false,"isExpanded":false}]}",
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":[["country","=","A"],"and",["active","=",true]],"group":[{"selector":"company","desc":false,"isExpanded":false}]}",
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":[["country",">","A"],"and",["active","=",true]],"group":[{"selector":"country","desc":true,"isExpanded":false}]}",
+    "{"sort":[{"selector":"amount","desc":true}],"filter":["active","=",true],"group":[{"selector":"country","desc":true,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":3,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"filter":[["country","=","A"],"and",["active","=",true]],"skip":0,"take":1}",
+    "{"sort":[{"selector":"country","desc":true,"isExpanded":false},{"selector":"company","desc":false,"isExpanded":false},{"selector":"amount","desc":true}],"filter":[["active","=",true],"and",[["country","=","A"],"and",["company","=","X"]]],"group":null,"requireTotalCount":false,"searchOperation":"contains","searchValue":null,"take":1,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":false}",
+  ],
+  "totalCount": 8,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        "D",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "B",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": 15,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=true > regroup 1`] = `
+{
+  "pageCount": 1,
+  "pageIndex": 0,
+  "requests": [
+    "{"sort":[{"selector":"amount","desc":true}],"filter":["active","=",true],"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":5,"userData":{},"groupSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}],"requireGroupCount":true}",
+  ],
+  "totalCount": 8,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "a",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "B",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "D",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records native lifecycle with nested=true > ungroup 1`] = `
+{
+  "pageCount": 2,
+  "pageIndex": 0,
+  "requests": [
+    "{"sort":[{"selector":"amount","desc":true}],"filter":["active","=",true],"group":null,"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":5,"userData":{},"totalSummary":[{"selector":"id","summaryType":"count"},{"selector":"amount","summaryType":"sum"}]}",
+  ],
+  "totalCount": 8,
+  "visible": [
+    {
+      "expanded": false,
+      "key": 15,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 13,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 11,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 9,
+      "type": "data",
+    },
+    {
+      "expanded": false,
+      "key": 7,
+      "type": "data",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records scope ambiguity with case-insensitive user filter A > ambiguity expand 1`] = `
+{
+  "pageCount": 4,
+  "pageIndex": 0,
+  "requests": [
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":[["country","=","a"],"and",["country","=","A"]],"group":[{"selector":"company","desc":false,"isExpanded":false}]}",
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":2,"userData":{},"filter":["country","=","A"],"requireGroupCount":true}",
+  ],
+  "totalCount": 9,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": true,
+      "key": [
+        "a",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records scope ambiguity with case-insensitive user filter A > ambiguity initial 1`] = `
+{
+  "pageCount": 1,
+  "pageIndex": 0,
+  "requests": [
+    "{"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":2,"userData":{},"filter":["country","=","A"],"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireGroupCount":true}",
+  ],
+  "totalCount": 9,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "a",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records scope ambiguity with case-insensitive user filter A > ambiguity next page 1`] = `
+{
+  "pageCount": 4,
+  "pageIndex": 1,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"searchOperation":"contains","searchValue":null,"skip":1,"take":1,"userData":{},"filter":["country","=","A"],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"filter":[["country","=","a"],"and",["country","=","A"]],"skip":0,"take":1}",
+  ],
+  "totalCount": 9,
+  "visible": [
+    {
+      "expanded": true,
+      "key": [
+        "a",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "a",
+        "X",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records scope ambiguity with case-insensitive user filter a > ambiguity expand 1`] = `
+{
+  "pageCount": 4,
+  "pageIndex": 0,
+  "requests": [
+    "{"skip":0,"take":1,"requireGroupCount":true,"requireTotalCount":false,"filter":[["country","=","A"],"and",["country","=","a"]],"group":[{"selector":"company","desc":false,"isExpanded":false}]}",
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":1,"userData":{},"filter":["country","=","a"],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"filter":[["country","=","A"],"and",["country","=","a"]],"skip":0,"take":1}",
+  ],
+  "totalCount": 9,
+  "visible": [
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+        "X",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records scope ambiguity with case-insensitive user filter a > ambiguity initial 1`] = `
+{
+  "pageCount": 1,
+  "pageIndex": 0,
+  "requests": [
+    "{"requireTotalCount":true,"searchOperation":"contains","searchValue":null,"skip":0,"take":2,"userData":{},"filter":["country","=","a"],"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"requireGroupCount":true}",
+  ],
+  "totalCount": 9,
+  "visible": [
+    {
+      "expanded": false,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "a",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;
+
+exports[`DevExtreme 26.1.4 public remote group paging protocol > records scope ambiguity with case-insensitive user filter a > ambiguity next page 1`] = `
+{
+  "pageCount": 4,
+  "pageIndex": 1,
+  "requests": [
+    "{"sort":null,"group":[{"selector":"country","desc":false,"isExpanded":false}],"searchOperation":"contains","searchValue":null,"skip":0,"take":1,"userData":{},"filter":["country","=","a"],"requireGroupCount":true}",
+    "{"requireTotalCount":false,"requireGroupCount":true,"group":[{"selector":"company","desc":false,"isExpanded":false}],"filter":[["country","=","A"],"and",["country","=","a"]],"skip":1,"take":1}",
+  ],
+  "totalCount": 9,
+  "visible": [
+    {
+      "expanded": true,
+      "key": [
+        "A",
+      ],
+      "type": "group",
+    },
+    {
+      "expanded": false,
+      "key": [
+        "A",
+        "x",
+      ],
+      "type": "group",
+    },
+  ],
+}
+`;

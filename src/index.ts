@@ -23,6 +23,7 @@ export type {
   GetGridResult,
   GetGridSortDescriptor,
   GetGridGroupDescriptor,
+  GetGridGroupPagingContext,
   GetGridGroupKey,
   GetGridGroupItem,
   GetGridSummaryType,

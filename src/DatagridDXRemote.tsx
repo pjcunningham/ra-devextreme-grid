@@ -11,7 +11,7 @@ import type dxDataGrid from 'devextreme/ui/data_grid';
 import { useDataProvider, useResourceContext, type RaRecord } from 'react-admin';
 import { createGridStore } from './remote/createGridStore';
 import { validateSummaryOptions } from './remote/summaryOptions';
-import { validateGroupingOptions } from './remote/groupingOptions';
+import { readGroupPagingContext, validateGroupingOptions } from './remote/groupingOptions';
 import type { DatagridDXDataProvider } from './remote/types';
 import type { DatagridDXRemoteProps } from './types';
 
@@ -38,6 +38,7 @@ export const DatagridDXRemote = forwardRef(function DatagridDXRemote<
     sorting,
     grouping: groupingProp,
     groupPanel,
+    groupPaging = false,
     onInitialized,
     onOptionChanged,
     onDisposing,
@@ -51,8 +52,12 @@ export const DatagridDXRemote = forwardRef(function DatagridDXRemote<
   const instance = useRef<dxDataGrid<RecordType, RecordType['id']> | null>(null);
   const validateBeforeLoad = useCallback(() => {
     validateSummaryOptions(instance.current?.option('summary'));
-    validateGroupingOptions(instance.current);
-  }, []);
+    validateGroupingOptions(instance.current, groupPaging);
+  }, [groupPaging]);
+  const getGroupPagingContext = useCallback(
+    () => (groupPaging ? readGroupPagingContext(instance.current) : undefined),
+    [groupPaging]
+  );
   const handleInitialized = useCallback<
     NonNullable<DatagridDXRemoteProps<RecordType>['onInitialized']>
   >(
@@ -77,11 +82,11 @@ export const DatagridDXRemote = forwardRef(function DatagridDXRemote<
           'headerFilter',
         ].includes(event.name)
       ) {
-        validateGroupingOptions(event.component);
+        validateGroupingOptions(event.component, groupPaging);
       }
       onOptionChanged?.(event);
     },
-    [onOptionChanged]
+    [onOptionChanged, groupPaging]
   );
   const handleDisposing = useCallback<
     NonNullable<DatagridDXRemoteProps<RecordType>['onDisposing']>
@@ -102,7 +107,7 @@ export const DatagridDXRemote = forwardRef(function DatagridDXRemote<
     [pageIndex, pageSize]
   );
   const sortingOptions = useMemo(() => ({ mode: 'multiple' as const, ...sorting }), [sorting]);
-  const operationOptions = useMemo(() => ({ ...remoteOperations }), []);
+  const operationOptions = useMemo(() => ({ ...remoteOperations, groupPaging }), [groupPaging]);
   const hiddenOptions = useMemo(
     () => ({ header: { ...hidden }, filter: { ...hidden }, search: { ...hidden } }),
     []
@@ -113,8 +118,14 @@ export const DatagridDXRemote = forwardRef(function DatagridDXRemote<
         'DatagridDXRemote requires a nonempty resource prop or React-Admin ResourceContext.'
       );
     }
-    return createGridStore<RecordType>({ resource, dataProvider, validateBeforeLoad });
-  }, [resource, dataProvider, validateBeforeLoad]);
+    return createGridStore<RecordType>({
+      resource,
+      dataProvider,
+      validateBeforeLoad,
+      groupPaging,
+      getGroupPagingContext,
+    });
+  }, [resource, dataProvider, validateBeforeLoad, groupPaging, getGroupPagingContext]);
 
   return (
     <DataGrid<RecordType, RecordType['id']>

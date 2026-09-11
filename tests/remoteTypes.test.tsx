@@ -20,6 +20,7 @@ import {
   type GetGridResult,
   type GetGridSortDescriptor,
   type GetGridGroupDescriptor,
+  type GetGridGroupPagingContext,
   type GetGridGroupKey,
   type GetGridGroupItem,
   type GetGridSummaryDescriptor,
@@ -235,7 +236,11 @@ describe('remote public types', () => {
   });
 
   it('exports the exact narrow provider contract', () => {
-    expectTypeOf<GetGridSortDescriptor>().toEqualTypeOf<{ selector: string; desc: boolean }>();
+    expectTypeOf<GetGridSortDescriptor>().toEqualTypeOf<{
+      selector: string;
+      desc: boolean;
+      isExpanded?: boolean;
+    }>();
     expectTypeOf<GetGridLoadOptions>().toEqualTypeOf<{
       skip?: number;
       take?: number;
@@ -246,6 +251,7 @@ describe('remote public types', () => {
       group?: GetGridGroupDescriptor[];
       groupSummary?: GetGridSummaryDescriptor[];
       requireGroupCount?: boolean;
+      groupPagingContext?: GetGridGroupPagingContext;
     }>();
     expectTypeOf<GetGridParams>().toEqualTypeOf<{ loadOptions: GetGridLoadOptions }>();
     expectTypeOf<GetGridResult<Customer>>().toEqualTypeOf<{
@@ -295,7 +301,7 @@ describe('remote public types', () => {
       items: [{ id: 'a', name: 'Alice' }],
       summary: [1],
     };
-    expectTypeOf(node.items).toEqualTypeOf<Array<Customer | GetGridGroupItem<Customer>>>();
+    expectTypeOf(node.items).toEqualTypeOf<Array<Customer | GetGridGroupItem<Customer>> | null>();
     const functionGroup: GetGridGroupDescriptor = {
       // @ts-expect-error Function group selectors cannot cross the wire.
       selector: () => 'name',
@@ -309,8 +315,7 @@ describe('remote public types', () => {
       // @ts-expect-error Intervals are not ordinary supported DataGrid grouping.
       groupInterval: 'year',
     };
-    // @ts-expect-error Lazy server contents remain Phase 8C.
-    const lazy: GetGridGroupItem<Customer> = { key: 'UK', items: null };
+    const lazy: GetGridGroupItem<Customer> = { key: 'UK', items: null, count: 12 };
     expect([group, node, functionGroup, interval, lazy]).toHaveLength(5);
   });
 
@@ -337,8 +342,7 @@ describe('remote public types', () => {
         summary={{ groupItems: [item] }}
       />
     );
-    // @ts-expect-error Only complete expanded groups are supported.
-    const collapsed = <DatagridDXRemote grouping={{ autoExpandAll: false }} />;
+    const collapsed = <DatagridDXRemote groupPaging grouping={{ autoExpandAll: false }} />;
     // @ts-expect-error Group paging remains adapter-owned.
     const paging = <DatagridDXRemote remoteOperations={{ groupPaging: true }} />;
     // @ts-expect-error Summary sorting has separate unsupported server semantics.
