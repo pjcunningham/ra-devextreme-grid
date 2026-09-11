@@ -1,9 +1,56 @@
-import pytest
-from sqlmodel import Session
+from collections.abc import Generator
+from datetime import date
+from unittest.mock import patch
 
-from app.grid.fields import GridQueryError
+import pytest
+from pydantic import JsonValue
+from sqlalchemy.engine import Engine
+from sqlmodel import Session, SQLModel
+
+from app.grid.fields import CUSTOMER_GRID_FIELDS, GridQueryError
+from app.grid.filtering import compile_filter_expression
 from app.grid.models import GridLoadOptions, GridSortDescriptor
 from app.grid.query import execute_customer_grid_query
+from app.models import Customer
+
+
+@pytest.fixture
+def varied_session(test_engine: Engine) -> Generator[Session]:
+    SQLModel.metadata.create_all(test_engine)
+    rows = [
+        (1, "Beta", "Aaron", None, True, "UK"),
+        (2, "Alpha", "Mira", 30, True, "UK"),
+        (3, "Beta", "Zulu", 40, True, "UK"),
+        (4, "Alpha", "Zulu", 20, True, "UK"),
+        (5, "Gamma", "Mira", 35, True, "UK"),
+        (6, "Beta", "Zulu", 30, True, "UK"),
+        (7, "Alpha", "Aaron", None, True, "UK"),
+        (8, "Gamma", "Zulu", 50, True, "UK"),
+        (9, "Beta", "Mira", 25, True, "UK"),
+        (10, "Alpha", "Zulu", 40, True, "UK"),
+        (11, "Gamma", "Aaron", 20, True, "UK"),
+        (12, "Alpha", "Mira", 60, True, "UK"),
+        (13, "Alpha", "Zulu", 30, False, "UK"),
+        (14, "Alpha", "Zulu", 30, True, "France"),
+        (15, "Alpha", "Zulu", None, False, "UK"),
+        (16, "Alpha", "Zulu", 40, True, "USA"),
+    ]
+    with Session(test_engine) as session_instance:
+        session_instance.add_all(
+            Customer(
+                id=id_,
+                company=company,
+                name=name,
+                age=age,
+                active=active,
+                country=country,
+                city="Test City",
+                joined_on=date(2024, 1, id_ + 13),
+            )
+            for id_, company, name, age, active, country in reversed(rows)
+        )
+        session_instance.commit()
+        yield session_instance
 
 
 def test_paging_default_first_page(session: Session):
@@ -165,24 +212,251 @@ def test_filter_null_and_empty_accepted(session: Session):
 
 
 def test_filter_non_empty_rejected(session: Session):
-    opts = GridLoadOptions(filter=["country", "=", "USA"])
-    with pytest.raises(GridQueryError) as exc_info:
+    opts = GridLoadOptions(filter=["country", "between", ["UK", "USA"]])
+    with pytest.raises(GridQueryError, match="Operator 'between' is not supported"):
         execute_customer_grid_query(session, opts)
-    assert (
-        "Remote filtering is not implemented by the Phase 6 reference backend"
-        in str(exc_info.value)
-    )
-    assert "Phase 7 adds the secure filter compiler" in str(exc_info.value)
 
     opts_nested = GridLoadOptions(
-        filter=[["country", "=", "USA"], "and", ["age", ">", 30]]
+        filter=[["country", "=", "USA"], "and", ["age", ">", "30"]]
     )
-    with pytest.raises(GridQueryError) as exc_info_nested:
+    with pytest.raises(GridQueryError, match="Invalid value for integer field 'age'"):
         execute_customer_grid_query(session, opts_nested)
-    assert (
-        "Remote filtering is not implemented by the Phase 6 reference backend"
-        in str(exc_info_nested.value)
+
+
+@pytest.mark.parametrize(
+    ("expression", "expected_ids", "expected_count"),
+    [
+        (["country", "=", "uk"], [8, 18, 28, 38, 48], 10),
+        (["country", "UK"], [8, 18, 28, 38, 48], 10),
+        (
+            [["country", "UK"], "and", [["active", True], ["age", ">=", 30]]],
+            [18, 48, 58, 68, 88],
+            6,
+        ),
+    ],
+)
+def test_filter_seed_simple_and_nested_shorthand(
+    session: Session, expression: list[JsonValue], expected_ids, expected_count
+):
+    records, total_count = execute_customer_grid_query(
+        session,
+        GridLoadOptions(filter=expression, take=5, require_total_count=True),
     )
+    assert [record.id for record in records] == expected_ids
+    assert total_count == expected_count
+
+
+def test_filter_seed_combined_sort_and_page_repeated(session: Session):
+    opts = GridLoadOptions(
+        filter=[["active", "=", True], "and", ["country", "=", "UK"]],
+        sort=[
+            GridSortDescriptor(selector="company", desc=False),
+            GridSortDescriptor(selector="name", desc=True),
+        ],
+        skip=5,
+        take=5,
+        require_total_count=True,
+    )
+    for _ in range(2):
+        records, total_count = execute_customer_grid_query(session, opts)
+        assert [record.id for record in records] == [48, 18, 58, 78, 38]
+        assert total_count == 10
+
+
+@pytest.mark.parametrize(
+    ("expression", "expected_ids"),
+    [
+        ([["active", True], ["id", "<=", 4]], [1, 2, 3, 4]),
+        ([["age", ">=", 30], ["id", "<=", 4]], [2, 3]),
+        (["joined_on", "2024-01-15"], [2]),
+        (
+            [["joined_on", ">", "2024-01-15"], ["joined_on", "<=", "2024-01-17"]],
+            [3, 4],
+        ),
+        (["age", "=", None], [1, 7, 15]),
+        ([["age", "<>", None], ["id", "<=", 4]], [2, 3, 4]),
+        ([["age", "<>", 30], ["id", "<=", 4]], [3, 4]),
+        (["!", ["country", "UK"]], [14, 16]),
+        (
+            [["country", "France"], "or", [["active", False], ["age", None]]],
+            [14, 15],
+        ),
+    ],
+)
+def test_filter_typed_and_recursive_execution(
+    varied_session: Session, expression: list[JsonValue], expected_ids
+):
+    records, total_count = execute_customer_grid_query(
+        varied_session,
+        GridLoadOptions(filter=expression, take=100, require_total_count=True),
+    )
+    assert [record.id for record in records] == expected_ids
+    assert total_count == len(expected_ids)
+
+
+@pytest.mark.parametrize(
+    ("sort", "expected_ids"),
+    [
+        ([], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
+        ([("id", True)], [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]),
+        ([("company", False)], [2, 4, 7, 10, 12, 1, 3, 6, 9, 5, 8, 11]),
+        ([("name", True)], [3, 4, 6, 8, 10, 2, 5, 9, 12, 1, 7, 11]),
+        (
+            [("company", False), ("name", True)],
+            [4, 10, 2, 12, 7, 3, 6, 9, 1, 8, 5, 11],
+        ),
+        (
+            [("name", True), ("company", False)],
+            [4, 10, 3, 6, 8, 2, 12, 9, 5, 7, 1, 11],
+        ),
+        (
+            [("company", True), ("name", False)],
+            [11, 5, 8, 1, 9, 3, 6, 7, 2, 12, 4, 10],
+        ),
+        (
+            [("company", False), ("name", True), ("id", True)],
+            [10, 4, 12, 2, 7, 6, 3, 9, 1, 8, 5, 11],
+        ),
+    ],
+)
+def test_filter_varied_sort_priorities_and_exact_ties(
+    varied_session: Session, sort, expected_ids
+):
+    opts = GridLoadOptions(
+        filter=[["active", True], ["country", "UK"]],
+        sort=[
+            GridSortDescriptor(selector=selector, desc=desc) for selector, desc in sort
+        ],
+        take=100,
+        require_total_count=True,
+    )
+    records, total_count = execute_customer_grid_query(varied_session, opts)
+    assert [record.id for record in records] == expected_ids
+    assert total_count == 12
+
+
+@pytest.mark.parametrize("require_total_count", [None, False, True])
+def test_filter_varied_combined_paging_and_optional_count(
+    varied_session: Session, require_total_count
+):
+    opts = GridLoadOptions(
+        filter=[["active", "=", True], "and", ["country", "=", "UK"]],
+        sort=[
+            GridSortDescriptor(selector="company", desc=False),
+            GridSortDescriptor(selector="name", desc=True),
+        ],
+        skip=5,
+        take=5,
+        require_total_count=require_total_count,
+    )
+    for _ in range(2):
+        records, total_count = execute_customer_grid_query(varied_session, opts)
+        assert [record.id for record in records] == [3, 6, 9, 1, 8]
+        assert total_count == (12 if require_total_count else None)
+
+
+@pytest.mark.parametrize("require_total_count", [None, False, True])
+@pytest.mark.parametrize(
+    ("expression", "skip", "expected_count"),
+    [
+        (["country", "Nowhere"], 0, 0),
+        ([["active", True], ["country", "UK"]], 12, 12),
+        ([["active", True], ["country", "UK"]], 200, 12),
+    ],
+)
+def test_filter_empty_or_beyond_page_keeps_unpaged_count(
+    varied_session: Session, expression, skip, expected_count, require_total_count
+):
+    records, total_count = execute_customer_grid_query(
+        varied_session,
+        GridLoadOptions(
+            filter=expression,
+            skip=skip,
+            take=5,
+            require_total_count=require_total_count,
+        ),
+    )
+    assert records == []
+    assert total_count == (expected_count if require_total_count else None)
+
+
+@pytest.mark.parametrize("require_total_count", [None, False, True])
+def test_filter_compiled_once_and_same_predicate_used_in_real_sql(
+    varied_session: Session, require_total_count
+):
+    opts = GridLoadOptions(
+        filter=[["active", True], ["country", "UK"]],
+        sort=[
+            GridSortDescriptor(selector="company", desc=False),
+            GridSortDescriptor(selector="name", desc=True),
+        ],
+        skip=5,
+        take=5,
+        require_total_count=require_total_count,
+    )
+    with (
+        patch(
+            "app.grid.query.compile_filter_expression", wraps=compile_filter_expression
+        ) as compile_spy,
+        patch.object(varied_session, "exec", wraps=varied_session.exec) as exec_spy,
+    ):
+        records, total_count = execute_customer_grid_query(varied_session, opts)
+
+    compile_spy.assert_called_once_with(opts.filter, CUSTOMER_GRID_FIELDS)
+    assert [record.id for record in records] == [3, 6, 9, 1, 8]
+    assert total_count == (12 if require_total_count else None)
+    statements = [call.args[0] for call in exec_spy.call_args_list]
+    assert len(statements) == (2 if require_total_count else 1)
+    records_statement = statements[-1]
+    assert len(records_statement._where_criteria) == 1
+    assert records_statement._offset_clause.value == 5
+    assert records_statement._limit_clause.value == 5
+    records_sql = str(records_statement)
+    assert "WHERE" in records_sql
+    assert "count(" not in records_sql
+    assert (
+        "ORDER BY customer.company ASC, customer.name DESC, customer.id ASC"
+        in records_sql
+    )
+    if require_total_count:
+        count_statement = statements[0]
+        assert len(count_statement._where_criteria) == 1
+        assert (
+            count_statement._where_criteria[0] is records_statement._where_criteria[0]
+        )
+        assert "count(customer.id)" in str(count_statement)
+        assert not count_statement._order_by_clauses
+        assert count_statement._offset_clause is None
+        assert count_statement._limit_clause is None
+
+
+@pytest.mark.parametrize("require_total_count", [None, False, True])
+@pytest.mark.parametrize(
+    ("expression", "sort"),
+    [
+        (["password_hash", "secret"], []),
+        (["active", "=", "true"], []),
+        (["!", ["age", "=", 30]], []),
+        (
+            [["country", "UK"], "and", ["active", True], "or", ["age", 30]],
+            [],
+        ),
+        (["country", "UK"], ["password_hash"]),
+        (["country", "UK"], ["company", "country.length"]),
+    ],
+)
+def test_filter_and_sort_validated_before_any_sql(
+    session: Session, expression, sort, require_total_count
+):
+    opts = GridLoadOptions(
+        filter=expression,
+        sort=[GridSortDescriptor(selector=selector, desc=False) for selector in sort],
+        require_total_count=require_total_count,
+    )
+    with patch.object(session, "exec", wraps=session.exec) as exec_spy:
+        with pytest.raises(GridQueryError):
+            execute_customer_grid_query(session, opts)
+    exec_spy.assert_not_called()
 
 
 def test_sql_level_execution_architectural(session: Session):

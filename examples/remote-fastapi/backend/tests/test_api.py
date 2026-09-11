@@ -1,4 +1,16 @@
+from unittest.mock import patch
+
+import pytest
 from fastapi.testclient import TestClient
+from pydantic import JsonValue
+from sqlalchemy.exc import OperationalError
+
+
+def nested_not_filter(depth: int) -> list[JsonValue]:
+    expression: list[JsonValue] = ["country", "UK"]
+    for _ in range(depth - 1):
+        expression = ["!", expression]
+    return expression
 
 
 def test_post_customers_grid_success(client: TestClient):
@@ -76,16 +88,306 @@ def test_post_customers_grid_unknown_selector_422(client: TestClient):
     assert any("password_hash" in str(err) for err in data["detail"])
 
 
-def test_post_customers_grid_non_empty_filter_422(client: TestClient):
-    payload = {"loadOptions": {"filter": ["country", "=", "USA"]}}
+@pytest.mark.parametrize(
+    ("expression", "message"),
+    [
+        (["country"], "Invalid filter condition: expected two or three items"),
+        (
+            ["country", "=", "UK", "extra"],
+            "Invalid filter condition: expected two or three items",
+        ),
+        ([1, "=", 1], "Invalid filter selector: expected a string"),
+        (["password_hash", "secret"], "Unknown filter selector: 'password_hash'"),
+        (["country.length", 2], "Unknown filter selector: 'country.length'"),
+        (["country", 1, "UK"], "Invalid filter operator: expected a string"),
+        (
+            ["country", "like", "UK"],
+            "Operator 'like' is not supported for string field 'country'",
+        ),
+        (
+            ["age", "between", [20, 40]],
+            "Operator 'between' is not supported for integer field 'age'",
+        ),
+        (
+            ["age", "contains", 30],
+            "Operator 'contains' is not supported for integer field 'age'",
+        ),
+        (["age", ">", "30"], "Invalid value for integer field 'age'"),
+        (["age", "=", True], "Invalid value for integer field 'age'"),
+        (["age", "=", 30.0], "Invalid value for integer field 'age'"),
+        (["age", "=", 2**63], "Integer value is outside signed 64-bit range: 'age'"),
+        (["active", "=", 1], "Invalid value for boolean field 'active'"),
+        (["active", "=", "true"], "Invalid value for boolean field 'active'"),
+        (["name", "=", 1], "Invalid value for string field 'name'"),
+        (
+            ["country", "=", None],
+            "Null is not supported for operator '=' on field 'country'",
+        ),
+        (["age", ">", None], "Null is not supported for operator '>' on field 'age'"),
+        (
+            ["joined_on", "=", "2024-01-15T00:00:00Z"],
+            "Invalid date for field 'joined_on': expected YYYY-MM-DD",
+        ),
+        (
+            ["joined_on", "=", "2024-02-30"],
+            "Invalid date for field 'joined_on': expected YYYY-MM-DD",
+        ),
+        (
+            ["!", ["country", "UK"], ["active", True]],
+            "Invalid unary NOT: expected exactly one expression",
+        ),
+        (["!", []], "Invalid filter expression: expected a nonempty array"),
+        ([["country", "UK"], "and"], "Invalid filter group: trailing connector"),
+        (
+            [["country", "UK"], "xor", ["active", True]],
+            "Invalid filter group: expected 'and', 'or' or expression",
+        ),
+        (
+            [["country", "UK"], "and", ["active", True], "or", ["age", 30]],
+            "Mixed AND/OR filter groups must be explicitly nested",
+        ),
+        (
+            ["!", ["age", "=", 30]],
+            "Unary NOT is not supported for nullable field 'age' "
+            "because DevExtreme and SQL NULL semantics differ.",
+        ),
+        (
+            ["!", [["country", "UK"], "or", ["age", "=", None]]],
+            "Unary NOT is not supported for nullable field 'age' "
+            "because DevExtreme and SQL NULL semantics differ.",
+        ),
+        pytest.param(
+            nested_not_filter(17),
+            "Filter exceeds maximum nesting depth (16)",
+            id="depth-17",
+        ),
+        pytest.param(
+            [["country", "UK"] for _ in range(200)],
+            "Filter exceeds maximum expression nodes (200)",
+            id="nodes-201",
+        ),
+        pytest.param(
+            ["name", "contains", "x" * 1025],
+            "Filter value exceeds maximum string length (1024)",
+            id="string-1025",
+        ),
+    ],
+)
+def test_post_customers_grid_non_empty_filter_422(
+    client: TestClient, expression: list[JsonValue], message: str
+):
+    payload = {"loadOptions": {"filter": expression, "requireTotalCount": True}}
     response = client.post("/api/customers/grid", json=payload)
     assert response.status_code == 422
-    data = response.json()
-    assert "detail" in data
-    assert any(
-        "Remote filtering is not implemented" in str(err) for err in data["detail"]
+    assert "application/json" in response.headers["content-type"]
+    assert response.json() == {"detail": [{"msg": message, "type": "grid_query_error"}]}
+
+
+@pytest.mark.parametrize(
+    ("expression", "expected_ids", "expected_count"),
+    [
+        (["country", "=", "uk"], [8, 18, 28, 38, 48], 10),
+        (["country", "UK"], [8, 18, 28, 38, 48], 10),
+        (
+            [["country", "UK"], "and", [["active", True], ["age", ">=", 30]]],
+            [18, 48, 58, 68, 88],
+            6,
+        ),
+        ([["active", True], ["id", "<=", 5]], [2, 3, 4], 3),
+        ([["age", ">=", 60], ["id", "<=", 10]], [9], 1),
+        (["joined_on", "2021-01-15"], [2], 1),
+        (
+            [["joined_on", ">=", "2021-01-15"], ["joined_on", "<", "2021-01-29"]],
+            [2],
+            1,
+        ),
+        ([["age", "=", None], ["id", "<=", 10]], [1, 8], 2),
+        ([["age", "<>", None], ["id", "<=", 4]], [2, 3, 4], 3),
+        ([["!", ["active", True]], ["id", "<=", 5]], [1, 5], 2),
+        ([["id", 1], "or", [["id", 3], ["active", True]]], [1, 3], 2),
+    ],
+)
+def test_post_customers_grid_filter_success(
+    client: TestClient, expression: list[JsonValue], expected_ids, expected_count
+):
+    response = client.post(
+        "/api/customers/grid",
+        json={
+            "loadOptions": {
+                "filter": expression,
+                "take": 5,
+                "requireTotalCount": True,
+            }
+        },
     )
-    assert any("Phase 7" in str(err) for err in data["detail"])
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body) == {"data", "totalCount"}
+    assert [row["id"] for row in body["data"]] == expected_ids
+    assert body["totalCount"] == expected_count
+
+
+def test_post_customers_grid_filter_sort_page_repeated(client: TestClient):
+    payload = {
+        "loadOptions": {
+            "filter": [["active", "=", True], "and", ["country", "=", "UK"]],
+            "sort": [
+                {"selector": "company", "desc": False},
+                {"selector": "name", "desc": True},
+            ],
+            "skip": 5,
+            "take": 5,
+            "requireTotalCount": True,
+        }
+    }
+    responses = [client.post("/api/customers/grid", json=payload) for _ in range(2)]
+    for response in responses:
+        assert response.status_code == 200
+        body = response.json()
+        assert [row["id"] for row in body["data"]] == [48, 18, 58, 78, 38]
+        assert body["totalCount"] == 10
+        assert all(
+            row["active"] is True and row["country"] == "UK" for row in body["data"]
+        )
+    assert responses[0].json() == responses[1].json()
+
+
+@pytest.mark.parametrize("count_options", [{}, {"requireTotalCount": False}])
+def test_post_customers_grid_filtered_total_count_omitted(
+    client: TestClient, count_options
+):
+    response = client.post(
+        "/api/customers/grid",
+        json={
+            "loadOptions": {
+                "filter": ["country", "UK"],
+                "take": 5,
+                **count_options,
+            }
+        },
+    )
+    assert response.status_code == 200
+    assert set(response.json()) == {"data"}
+    assert [row["id"] for row in response.json()["data"]] == [8, 18, 28, 38, 48]
+
+
+@pytest.mark.parametrize("expression", [None, []])
+def test_post_customers_grid_empty_filter_success(client: TestClient, expression):
+    response = client.post(
+        "/api/customers/grid",
+        json={
+            "loadOptions": {"filter": expression, "take": 5, "requireTotalCount": True}
+        },
+    )
+    assert response.status_code == 200
+    assert [row["id"] for row in response.json()["data"]] == [1, 2, 3, 4, 5]
+    assert response.json()["totalCount"] == 100
+
+
+@pytest.mark.parametrize(
+    "count_options", [{}, {"requireTotalCount": False}, {"requireTotalCount": True}]
+)
+@pytest.mark.parametrize(
+    ("expression", "skip", "expected_count"),
+    [(["country", "Nowhere"], 0, 0), (["country", "UK"], 200, 10)],
+)
+def test_post_customers_grid_empty_filtered_page(
+    client: TestClient, expression, skip, expected_count, count_options
+):
+    response = client.post(
+        "/api/customers/grid",
+        json={
+            "loadOptions": {
+                "filter": expression,
+                "skip": skip,
+                "take": 5,
+                **count_options,
+            }
+        },
+    )
+    assert response.status_code == 200
+    expected = {"data": []}
+    if count_options.get("requireTotalCount"):
+        expected["totalCount"] = expected_count
+    assert response.json() == expected
+
+
+@pytest.mark.parametrize(
+    ("expression", "expected_ids", "expected_count"),
+    [
+        pytest.param(nested_not_filter(16), [1, 2, 3, 4, 5], 90, id="depth-16"),
+        pytest.param(
+            [["country", "UK"] for _ in range(199)],
+            [8, 18, 28, 38, 48],
+            10,
+            id="nodes-200",
+        ),
+        pytest.param(["name", "=", "x" * 1024], [], 0, id="string-1024"),
+    ],
+)
+def test_post_customers_grid_filter_limits_accepted(
+    client: TestClient, expression, expected_ids, expected_count
+):
+    response = client.post(
+        "/api/customers/grid",
+        json={
+            "loadOptions": {"filter": expression, "take": 5, "requireTotalCount": True}
+        },
+    )
+    assert response.status_code == 200
+    assert [row["id"] for row in response.json()["data"]] == expected_ids
+    assert response.json()["totalCount"] == expected_count
+
+
+@pytest.mark.parametrize(
+    ("target", "error"),
+    [
+        (
+            "app.main.execute_customer_grid_query",
+            RuntimeError("private query failure"),
+        ),
+        (
+            "app.main.execute_customer_grid_query",
+            ValueError("private query value failure"),
+        ),
+        (
+            "app.grid.query.compile_filter_expression",
+            RuntimeError("private compiler failure"),
+        ),
+        (
+            "app.grid.query.compile_filter_expression",
+            ValueError("private compiler value failure"),
+        ),
+        (
+            "sqlmodel.Session.exec",
+            OperationalError("SELECT private_table", {}, RuntimeError("private DB")),
+        ),
+    ],
+    ids=[
+        "query-runtime",
+        "query-value",
+        "compiler-runtime",
+        "compiler-value",
+        "database",
+    ],
+)
+def test_post_customers_grid_unexpected_exceptions_are_not_422(
+    client: TestClient, target, error
+):
+    # The client lifespan has finished seeding before injecting endpoint failures.
+    with patch(target, side_effect=error) as failing_call:
+        with pytest.raises(type(error)) as exc_info:
+            client.post(
+                "/api/customers/grid",
+                json={
+                    "loadOptions": {
+                        "filter": ["country", "UK"],
+                        "requireTotalCount": True,
+                    }
+                },
+            )
+    assert exc_info.value is error
+    failing_call.assert_called_once()
 
 
 def test_post_customers_grid_extra_field_rejected_422(client: TestClient):
@@ -126,6 +428,30 @@ def test_post_customers_grid_invalid_paging_422(client: TestClient):
     assert resp3.status_code == 422
 
 
+@pytest.mark.parametrize(
+    "load_options",
+    [
+        {"filter": {"country": "UK"}},
+        {"filter": "country=UK"},
+        {"filter": True},
+        {"sort": [{"selector": "country", "desc": False, "extra": True}]},
+        {"groupSummary": [{"selector": "age", "summaryType": "sum"}]},
+        {"totalSummary": [{"selector": "age", "summaryType": "sum"}]},
+        {"requireGroupCount": True},
+        {"searchValue": "UK"},
+    ],
+)
+def test_post_customers_grid_wire_validation_unchanged(
+    client: TestClient, load_options
+):
+    response = client.post("/api/customers/grid", json={"loadOptions": load_options})
+    assert response.status_code == 422
+    assert response.json()["detail"]
+    assert all(
+        error["type"] != "grid_query_error" for error in response.json()["detail"]
+    )
+
+
 def test_openapi_schema(client: TestClient):
     response = client.get("/openapi.json")
     assert response.status_code == 200
@@ -141,3 +467,16 @@ def test_openapi_schema(client: TestClient):
 
     assert "GridResponse" in components
     assert "totalCount" in components["GridResponse"]["properties"]
+
+    assert set(components["GridRequest"]["properties"]) == {"loadOptions"}
+    assert set(components["GridLoadOptions"]["properties"]) == {
+        "skip",
+        "take",
+        "requireTotalCount",
+        "sort",
+        "filter",
+    }
+    assert set(components["GridSortDescriptor"]["properties"]) == {"selector", "desc"}
+    for name in ("GridRequest", "GridLoadOptions", "GridSortDescriptor"):
+        assert components[name]["additionalProperties"] is False
+    assert set(components["GridResponse"]["properties"]) == {"data", "totalCount"}

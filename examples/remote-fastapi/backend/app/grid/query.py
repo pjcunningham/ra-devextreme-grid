@@ -1,6 +1,7 @@
 from sqlmodel import Session, func, select
 
-from app.grid.fields import GridQueryError, get_customer_sort_column
+from app.grid.fields import CUSTOMER_GRID_FIELDS, get_customer_sort_column
+from app.grid.filtering import compile_filter_expression
 from app.grid.models import GridLoadOptions
 from app.models import Customer
 
@@ -8,21 +9,8 @@ from app.models import Customer
 def execute_customer_grid_query(
     session: Session, load_options: GridLoadOptions
 ) -> tuple[list[Customer], int | None]:
-    """Execute customer grid query with database-side sorting, paging, and count."""
-    # 1. Deliberately reject non-empty filter expressions in Phase 6
-    if load_options.filter is not None and len(load_options.filter) > 0:
-        raise GridQueryError(
-            "Remote filtering is not implemented by the Phase 6 reference backend; "
-            "Phase 7 adds the secure filter compiler."
-        )
-
-    # 2. Conditional total count query
-    total_count: int | None = None
-    if load_options.require_total_count is True:
-        count_statement = select(func.count(Customer.id))
-        total_count = session.exec(count_statement).one()
-
-    # 3. Dynamic sorting with deterministic tie-breaker
+    """Filter, conditionally count, sort and page customers entirely in SQL."""
+    # Validate all client-controlled structure before executing either statement.
     order_by_clauses = []
     has_id_sort = False
 
@@ -40,10 +28,20 @@ def execute_customer_grid_query(
     if not has_id_sort:
         order_by_clauses.append(Customer.id.asc())
 
-    # 4. Compose SQL query with OFFSET and LIMIT
+    filter_clause = compile_filter_expression(load_options.filter, CUSTOMER_GRID_FIELDS)
+    statement = select(Customer)
+    count_statement = select(func.count(Customer.id))
+    if filter_clause is not None:
+        statement = statement.where(filter_clause)
+        count_statement = count_statement.where(filter_clause)
+
+    total_count: int | None = None
+    if load_options.require_total_count is True:
+        total_count = session.exec(count_statement).one()
+
+    # Filter the complete set before deterministic ordering and paging.
     statement = (
-        select(Customer)
-        .order_by(*order_by_clauses)
+        statement.order_by(*order_by_clauses)
         .offset(load_options.skip)
         .limit(load_options.take)
     )

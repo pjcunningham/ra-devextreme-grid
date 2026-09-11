@@ -1,8 +1,11 @@
+from dataclasses import FrozenInstanceError, replace
+
 import pytest
 
 from app.grid.fields import (
     CUSTOMER_GRID_FIELDS,
     GridQueryError,
+    GridValueType,
     get_customer_sort_column,
 )
 
@@ -21,7 +24,52 @@ def test_customer_grid_fields_all_resolve():
     for field_name in expected_fields:
         column = get_customer_sort_column(field_name)
         assert column is not None
-        assert column == CUSTOMER_GRID_FIELDS[field_name]
+        assert column is CUSTOMER_GRID_FIELDS[field_name].expression
+
+
+def test_registry_metadata():
+    assert set(CUSTOMER_GRID_FIELDS) == {
+        "id",
+        "name",
+        "company",
+        "city",
+        "country",
+        "active",
+        "age",
+        "joined_on",
+    }
+    expected_types = {
+        "id": GridValueType.INTEGER,
+        "name": GridValueType.STRING,
+        "company": GridValueType.STRING,
+        "city": GridValueType.STRING,
+        "country": GridValueType.STRING,
+        "active": GridValueType.BOOLEAN,
+        "age": GridValueType.INTEGER,
+        "joined_on": GridValueType.DATE,
+    }
+    for selector, field in CUSTOMER_GRID_FIELDS.items():
+        assert field.value_type is expected_types[selector]
+        assert field.nullable is (selector == "age")
+        assert field.sortable is True
+        assert field.filterable is True
+    with pytest.raises(FrozenInstanceError):
+        CUSTOMER_GRID_FIELDS["age"].nullable = False
+
+
+def test_sort_capability_is_independent_of_filter_capability(monkeypatch):
+    field = CUSTOMER_GRID_FIELDS["name"]
+    monkeypatch.setitem(CUSTOMER_GRID_FIELDS, "name", replace(field, filterable=False))
+    assert get_customer_sort_column("name") is field.expression
+    monkeypatch.setitem(CUSTOMER_GRID_FIELDS, "name", replace(field, sortable=False))
+    with pytest.raises(GridQueryError, match="Sorting is not supported"):
+        get_customer_sort_column("name")
+
+
+@pytest.mark.parametrize("selector", ["name_q", "age_gte", "country_eq"])
+def test_managed_filter_suffix_is_not_a_sort_field(selector):
+    with pytest.raises(GridQueryError, match="sort selector"):
+        get_customer_sort_column(selector)
 
 
 def test_unknown_field_rejected():

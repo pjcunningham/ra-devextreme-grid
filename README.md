@@ -5,11 +5,11 @@
 [![CI](https://github.com/pjcunningham/ra-devextreme-grid/actions/workflows/ci.yml/badge.svg)](https://github.com/pjcunningham/ra-devextreme-grid/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Status: Early Development (Phase 6 Implemented)
+## Status: Early Development (Phase 7 Implemented)
 
 `ra-devextreme-grid` is currently under active early development and is **not yet production-ready**.
 
-**Phase 6: Reference FastAPI Backend** provides a lightweight, UV-managed Python reference service under [`examples/remote-fastapi/`](./examples/remote-fastapi/README.md) demonstrating database-level paging, conditional total count queries, and multi-column SQL sorting with deterministic tie-breaking. Remote filter compilation is explicitly deferred to Phase 7.
+**Phase 7: Secure Remote Filtering** extends the UV-managed [FastAPI reference backend](./examples/remote-fastapi/README.md) with a typed, bounded DevExtreme-to-SQLAlchemy filter compiler, filtered total counts, and deterministic multi-column sorting and paging. The example documents date-only transport and intentional NULL/collation limitations.
 
 **Phase 5: Remote Mode Foundation** adds a separate, read-only `DatagridDXRemote` with native paging, multi-column sorting, Filter Row expressions, and a typed `dataProvider.getGrid()` boundary. See [Remote mode](#remote-mode-phase-5) below.
 
@@ -453,7 +453,7 @@ pnpm format
 - **Phase 4B (Completed)**: Managed Grid UX (Column Chooser, column resizing, column reordering, column fixing/pinning, adaptive column hiding).
 - **Phase 5 (Completed)**: Remote Mode Foundation (`DatagridDXRemote`, `CustomStore`, `dataProvider.getGrid()`, multi-column remote sorting, remote filtering).
 - **Phase 6 (Completed)**: Reference FastAPI + SQLModel Backend ([`examples/remote-fastapi/`](./examples/remote-fastapi/README.md)) with server-side paging, multi-column SQL sorting, conditional total count queries, deterministic tie-breakers, and UV-managed tests.
-- **Phase 7**: Secure Remote Filter Compiler (parameterized SQLAlchemy compiler for DevExtreme filter expressions).
+- **Phase 7 (Completed)**: Secure Remote Filter Compiler ([typed, parameterized SQLAlchemy filtering](./examples/remote-fastapi/README.md) with filtered counts and date-only transport guidance).
 - **Phase 8**: Grouping & Summaries.
 - **Phase 9**: Grid State Persistence (safe separation of React-Admin query state and DevExtreme visual state).
 - **Phase 10**: Inline Grid Editing (React-Admin mutation bridge).
