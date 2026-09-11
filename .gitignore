@@ -36,3 +36,11 @@ Thumbs.db
 .idea/**/shelf/
 .idea/**/contentModel.xml
 .idea/*.iml
+
+# Python & UV
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+examples/remote-fastapi/backend/data/
