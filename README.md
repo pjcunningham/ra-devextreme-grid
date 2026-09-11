@@ -5,11 +5,13 @@
 [![CI](https://github.com/pjcunningham/ra-devextreme-grid/actions/workflows/ci.yml/badge.svg)](https://github.com/pjcunningham/ra-devextreme-grid/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Status: Early Development (Phase 4B Implemented)
+## Status: Early Development (Phase 5 Implemented)
 
 `ra-devextreme-grid` is currently under active early development and is **not yet production-ready**.
 
-The repository has implemented **Phase 4B: Managed Grid UX**. In this phase:
+**Phase 5: Remote Mode Foundation** adds a separate, read-only `DatagridDXRemote` with native paging, multi-column sorting, Filter Row expressions, and a typed `dataProvider.getGrid()` boundary. See [Remote mode](#remote-mode-phase-5) below.
+
+The repository also retains **Phase 4B: Managed Grid UX**. In managed mode:
 
 - `DatagridDX` supports safe, client-side presentation and column-management capabilities: **Column Chooser**, **column resizing**, **column reordering**, **column fixing/pinning**, and **adaptive column hiding / responsive layout**.
 - Features operate directly via native DevExtreme props (`allowColumnResizing`, `allowColumnReordering`, `columnAutoWidth`, `columnChooser`, `columnFixing`, `columnHidingEnabled`) without requiring artificial adapter wrapper objects.
@@ -27,6 +29,170 @@ The repository has implemented **Phase 4B: Managed Grid UX**. In this phase:
 The goal of `ra-devextreme-grid` is to provide a first-class, reusable integration between [React-Admin](https://marmelab.com/react-admin/) and the [DevExpress DevExtreme React DataGrid](https://js.devexpress.com/React/Documentation/Guide/UI_Components/DataGrid/Getting_Started_with_DataGrid/).
 
 React-Admin provides robust application-level capabilities including resource routing, authentication, authorization, notifications, and list/record controllers. DevExtreme DataGrid provides high-performance grid features such as complex grouping, multi-column sorting, advanced filtering, and server-side data processing. `ra-devextreme-grid` bridges both worlds cleanly.
+
+## Choosing an ownership model
+
+| Responsibility               | Managed `DatagridDX`                         | `DatagridDXRemote`                                                      |
+| ---------------------------- | -------------------------------------------- | ----------------------------------------------------------------------- |
+| Resource list page           | Requires `<List>` / `ListContext`            | Register directly as the resource list; **no `<List>` or `<ListBase>`** |
+| Query owner                  | React-Admin ListController                   | DevExtreme DataGrid / DataSource                                        |
+| Data access                  | `dataProvider.getList()` → array             | `CustomStore` → wrapped `dataProvider.getGrid()`                        |
+| Paging UI                    | Standalone `DatagridDXPagination`            | Native DataGrid pager, `skip` / `take`                                  |
+| Sorting                      | React-Admin single-column sort               | Ordered native multi-column sort                                        |
+| Filtering                    | Managed suffix conversion                    | Native nested expression arrays                                         |
+| Selection / navigation       | React-Admin selection and managed `rowClick` | Selection disabled; native `onRowClick` only                            |
+| Persistence / inline editing | Not implemented                              | Not implemented                                                         |
+
+Choose managed mode for conventional React-Admin list integration and remote mode for richer server query semantics; this is not a hard dataset-size rule. They are separate components, not a `remote` switch on `DatagridDX`.
+
+```text
+Managed: ListController → ListContext → DatagridDX → array-backed DataGrid
+Remote:  ResourceContext + useDataProvider → DatagridDXRemote
+           → DataGrid / CustomStore → dataProvider.getGrid → application service
+```
+
+## Remote mode (Phase 5)
+
+**Do not wrap `DatagridDXRemote` in React-Admin `<List>` or `<ListBase>`.** Doing so would start a separate `getList()` request alongside `getGrid()`. Do not use `DatagridDXPagination` with it. List-dependent toolbars, filters, and bulk actions require managed mode; no artificial `ListContext` is supplied.
+
+```tsx
+import { Resource } from 'react-admin';
+import { Column } from 'devextreme-react/data-grid';
+import { DatagridDXRemote } from 'ra-devextreme-grid';
+
+interface Customer {
+  id: number;
+  name: string;
+  company: string;
+  country: string;
+}
+
+const CustomerRemoteList = () => (
+  <DatagridDXRemote<Customer>
+    paging={{ pageSize: 10 }}
+    pager={{
+      visible: true,
+      showPageSizeSelector: true,
+      allowedPageSizes: [5, 10, 25],
+      showInfo: true,
+    }}
+    sorting={{ mode: 'multiple' }}
+    filterRow={{ visible: true }}
+    showBorders
+  >
+    <Column dataField="id" dataType="number" />
+    <Column dataField="name" />
+    <Column dataField="company" />
+    <Column dataField="country" />
+  </DatagridDXRemote>
+);
+
+// Inside your existing <Admin dataProvider={dataProvider}>:
+<Resource name="customers" list={CustomerRemoteList} />;
+```
+
+`useResourceContext` resolves the resource from the route. A nonempty `resource` prop overrides context; missing/empty resources raise a developer error. The adapter never forwards `resource` to DataGrid. A generic public `DataGridRef<Customer, number>` ref and native callbacks retain record/key types.
+
+### Public provider contract
+
+All these types, plus `DatagridDXRemoteProps<RecordType>`, are exported from the package root:
+
+```ts
+import type { DataProvider, RaRecord } from 'react-admin';
+
+export interface GetGridSortDescriptor {
+  selector: string;
+  desc: boolean;
+}
+
+export interface GetGridLoadOptions {
+  skip?: number;
+  take?: number;
+  requireTotalCount?: boolean;
+  sort?: GetGridSortDescriptor[];
+  filter?: unknown[] | null;
+}
+
+export interface GetGridParams {
+  loadOptions: GetGridLoadOptions;
+}
+
+export interface GetGridResult<RecordType extends RaRecord = RaRecord> {
+  data: RecordType[];
+  totalCount?: number;
+}
+
+export interface DatagridDXDataProvider extends DataProvider {
+  getGrid<RecordType extends RaRecord = RaRecord>(
+    resource: string,
+    params: GetGridParams
+  ): Promise<GetGridResult<RecordType>>;
+}
+```
+
+`filter` is an opaque native expression array, **not** a library operator grammar or an `any`-typed selector. Providers narrow its `unknown` contents. Nested `and`, `or`, `!`, ordinary objects, and `Date` values are preserved unchanged. The adapter neither flattens expressions nor converts them to managed `_q`, `_eq`, or `_gte` suffixes.
+
+Extend your existing provider with an application-owned transport or local service:
+
+```ts
+import type { DataProvider, RaRecord } from 'react-admin';
+import type { DatagridDXDataProvider, GetGridParams } from 'ra-devextreme-grid';
+
+function withGrid(
+  baseDataProvider: DataProvider,
+  requestGrid: DatagridDXDataProvider['getGrid']
+): DatagridDXDataProvider {
+  return {
+    ...baseDataProvider,
+    getGrid<RecordType extends RaRecord = RaRecord>(resource: string, params: GetGridParams) {
+      return requestGrid<RecordType>(resource, params);
+    },
+  };
+}
+
+// const dataProvider = withGrid(baseDataProvider, yourApplicationGridService);
+// The service returns { data, totalCount }, not React-Admin { data, total }.
+```
+
+The library defines **no HTTP protocol or endpoint**. Your provider decides between POST JSON, query parameters, GraphQL, RPC, or an in-memory service, and handles authentication headers and resource mapping. Date/time-zone serialization, field/operator authorization, payload limits, and backend security are application responsibilities. The small adapter validator is not a security boundary or a promise of JSON serializability.
+
+### Native query and result rules
+
+- Only `skip`, `take`, `requireTotalCount`, `sort`, and `filter` are forwarded. Paging offsets remain native; meaningful zero/false values are retained. Offsets/sizes must be finite non-negative integers.
+- Paging is always enabled. The native default page size is **20**, and page indexes are zero-based. The example uses 10. `paging.enabled` and the loose generated `defaultPaging` alias are omitted; native pager options and `paging.pageIndex` / `pageSize` remain available. DevExtreme handles page changes/resets and may reuse cached rows or request a partial page.
+- Sort strings, descriptor objects, and arrays normalize to ordered `{ selector: string, desc: boolean }[]`; omitted `desc` becomes false. Multiple sorting is the default; native safe sorting customization remains available.
+- Filter Row is opt-in. Native `filterValue`, `defaultFilterValue`, and change callbacks remain native, with no React-Admin synchronization.
+- Executable functions anywhere in supported query input, invalid sort selectors/directions, and malformed filter containers reject the load. Function traversal is cycle-safe and does not execute query functions.
+- Active `group`, `groupSummary`, `totalSummary`, or `requireGroupCount: true` reject before the provider runs. Null/empty advanced descriptors and false group-count defaults are inactive. Active projection/search and unrelated semantic query operations (such as `select` or `expand`) also reject; bookkeeping like `userData` and inactive DataSource search defaults are ignored.
+- `getGrid` must return an object with a `data` array. `totalCount` is required when requested and must then be numeric, finite, and non-negative. A supplied optional count is validated identically; absent optional counts stay absent. Neither `data.length` nor React-Admin `total` is substituted. Records require stable `id` keys; deep record validation is not performed.
+
+The store uses `key: 'id'` and `loadMode: 'processed'`: server pages are not re-filtered/re-sorted locally under the supported configuration. The adapter also sets `keyExpr="id"` for consistency; DevExtreme reports `W1011` for store-backed sources because the **store key is authoritative**.
+
+### Lifecycle, loading, and errors
+
+The internal factory is not a hook. `DatagridDXRemote` memoizes its store on `[resource, dataProvider]` and stabilizes its owned native options. Unrelated rerenders preserve store and native query state; resolved resource or wrapped-provider changes replace the store. Strict Mode remounts and authentication-context changes can legitimately produce additional loads.
+
+React-Admin's public `useDataProvider` supplies the **wrapped** provider. There is no direct HTTP call or added React Query layer in the adapter, and it never calls `getList`, `setSort`, or `setFilters`. Grid/DataSource owns subscription and loading lifecycle; there is no second loading state or custom-loading overlay. Native `loadPanel`, `onDataErrorOccurred`, and error-row presentation remain available.
+
+Missing or non-callable `getGrid` produces: `DatagridDXRemote requires the React-Admin dataProvider to implement getGrid(resource, params).` Normal rejected-provider errors propagate through CustomStore to native error handling; invalid data/counts reject with descriptive errors. There is no empty-success fallback or extra notification layer. React-Admin still checks authentication errors and may log out and transform a response, so an authentication failure is not guaranteed to emerge as the original DevExtreme error.
+
+**No `meta` or cancellation signal** is included in Phase 5. `meta` needs defined identity/reload semantics; installed CustomStore load APIs supply no `AbortSignal`. In-flight work is not promised to abort when resources change. No additional DataSource or invented store disposal/cancellation API is used.
+
+### Ownership and unsupported configuration
+
+The adapter owns `dataSource`, `keyExpr`, `remoteOperations`, paging enablement, and `syncLookupFilterValues: false`. Remote operations explicitly enable paging/sorting/filtering and disable grouping/summary/groupPaging. Native resizing, reordering, fixing, column chooser, adaptive presentation, and `onRowClick` remain available.
+
+Omitted top-level props include `stateStoring`, `grouping`, `groupPanel`, `summary`, `headerFilter`, `filterBuilder`, `filterBuilderPopup`, `filterPanel`, `searchPanel`, and `editing`, including relevant editing/group-panel default/change aliases and mutation callbacks. Selection is deliberately disabled: `selection`, selected-key/filter values, default/change aliases, and selection callbacks are omitted. There is no React-Admin remote bulk-selection bridge or managed `rowClick="edit"` convenience API yet.
+
+**Native children and imperative calls are not sandboxed.** Do not configure `Column.groupIndex`, executable remote selectors, nested advanced-filter/summary components, mutations, or persistence. These can bypass top-level omissions. In particular, forcing local grouping can group only the loaded page, which is unsupported and incorrect for remote totals; load guards catch actual remote group/summary requests, not every possible JSX or imperative configuration. Header Filter distinct-value services, grouping/group paging, summaries, inline editing, and persistent grid state remain deferred.
+
+### Dual-mode example
+
+Run `pnpm dev`. The managed `customers` resource keeps its CRUD/list behavior; the separately labeled `remote-customers` resource calls `getGrid` over the same complete customer dataset. The isolated `examples/basic/remoteQuery.ts` evaluator processes **filter → ordered multi-sort → totalCount → skip/take**, never the current grid page. It is demonstration code, not the future production backend compiler, and is not a package export.
+
+The demo supports `=`, `<>`, `>`, `>=`, `<`, `<=`, `contains`, `notcontains`, `startswith`, `endswith`, and explicit nested `and` / `or` / `!`. Strings compare case-insensitively with JavaScript lowercase/UTF-16 lexical ordering, numbers numerically, and valid Dates by epoch milliseconds; strings are not parsed as dates and types are not coerced. Null/undefined are equal; relational filters involving nullish or unlike types are false. Text operations require strings; `notcontains` negates `contains`, including for nullish record values. Ascending mixed-type sorting orders nullish, number, Date, string, then Boolean, and preserves dataset order for complete ties. Unknown resources/fields/operators and malformed expressions reject. This intentionally limited evaluator is not a locale-aware database collation or a production security model.
+
+Use the name Filter Row for contains, country for equality, and numeric `id` for comparisons. Theme CSS remains exclusively in the consuming example entry point. Visual load-panel, sort-indicator, and drag/resize behavior should be checked in a licensed browser environment; jsdom tests verify native query and loading state rather than visual fidelity.
 
 ## DevExtreme Theme & Styling
 
@@ -283,7 +449,7 @@ pnpm format
 - **Phase 3 (Completed)**: Row Selection (`selectedIds`, `onSelect`) and Row Click Navigation (`rowClick="edit" | "show" | false`).
 - **Phase 4A (Completed)**: Managed React-Admin Filtering with DevExtreme Filter Row (`DatagridDX filtering`, translation layer, bidirectional synchronization, underscore parsing, external filter preservation).
 - **Phase 4B (Completed)**: Managed Grid UX (Column Chooser, column resizing, column reordering, column fixing/pinning, adaptive column hiding).
-- **Phase 5**: Remote Mode Foundation (`DatagridDXRemote`, `CustomStore`, `dataProvider.getGrid()`, multi-column remote sorting, remote filtering).
+- **Phase 5 (Completed)**: Remote Mode Foundation (`DatagridDXRemote`, `CustomStore`, `dataProvider.getGrid()`, multi-column remote sorting, remote filtering).
 - **Phase 6+**: Python Reference Backend (FastAPI, SQLModel, UV).
 - **Phase 9**: Grid State Persistence (safe separation of React-Admin query state and DevExtreme visual state).
 - **Phase 10**: Inline Grid Editing (React-Admin mutation bridge).

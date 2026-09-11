@@ -11,4 +11,11 @@ describe('ra-devextreme-grid public entry point', () => {
     expect(pkg.DatagridDXPagination).toBeDefined();
     expect(['function', 'object']).toContain(typeof pkg.DatagridDXPagination);
   });
+
+  it('exports DatagridDXRemote without exposing remote internals', () => {
+    expect(pkg.DatagridDXRemote).toBeDefined();
+    expect(['function', 'object']).toContain(typeof pkg.DatagridDXRemote);
+    expect(pkg).not.toHaveProperty('createGridStore');
+    expect(pkg).not.toHaveProperty('normalizeLoadOptions');
+  });
 });

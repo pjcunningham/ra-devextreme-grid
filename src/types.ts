@@ -108,3 +108,56 @@ export type DatagridDXPaginationProps = Omit<
   | 'onPageIndexChange'
   | 'onPageSizeChange'
 >;
+
+/**
+ * Read-only remote grid options. DevExtreme owns native query state; do not use
+ * inside List/ListBase or with DatagridDXPagination. Nested native components
+ * and imperative APIs must also respect the documented Phase 5 limitations.
+ */
+export type DatagridDXRemoteProps<RecordType extends RaRecord = RaRecord> = Omit<
+  IDataGridOptions<RecordType, RecordType['id']>,
+  | 'dataSource'
+  | 'keyExpr'
+  | 'remoteOperations'
+  | 'paging'
+  | 'defaultPaging'
+  | 'stateStoring'
+  | 'grouping'
+  | 'groupPanel'
+  | 'defaultGroupPanel'
+  | 'onGroupPanelChange'
+  | 'summary'
+  | 'headerFilter'
+  | 'filterBuilder'
+  | 'filterBuilderPopup'
+  | 'filterPanel'
+  | 'searchPanel'
+  | 'editing'
+  | 'defaultEditing'
+  | 'onEditingChange'
+  | 'onEditingStart'
+  | 'onEditCanceling'
+  | 'onEditCanceled'
+  | 'onInitNewRow'
+  | 'onRowInserting'
+  | 'onRowInserted'
+  | 'onRowUpdating'
+  | 'onRowUpdated'
+  | 'onRowRemoving'
+  | 'onRowRemoved'
+  | 'onRowValidating'
+  | 'onSaving'
+  | 'onSaved'
+  | 'selection'
+  | 'selectedRowKeys'
+  | 'defaultSelectedRowKeys'
+  | 'onSelectedRowKeysChange'
+  | 'selectionFilter'
+  | 'defaultSelectionFilter'
+  | 'onSelectionFilterChange'
+  | 'onSelectionChanged'
+  | 'syncLookupFilterValues'
+> & {
+  resource?: string;
+  paging?: Omit<NonNullable<IDataGridOptions<RecordType, RecordType['id']>['paging']>, 'enabled'>;
+};

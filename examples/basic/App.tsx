@@ -11,12 +11,20 @@ import {
   TextField,
   useListContext,
   defaultLightTheme,
-  type DataProvider,
   type GetListParams,
   type RaRecord,
 } from 'react-admin';
 import { Column } from 'devextreme-react/data-grid';
-import { DatagridDX, DatagridDXPagination, parseRaFilterKey } from '../../src/index';
+import {
+  DatagridDX,
+  DatagridDXPagination,
+  DatagridDXRemote,
+  parseRaFilterKey,
+  type DatagridDXDataProvider,
+  type GetGridParams,
+  type GetGridResult,
+} from '../../src/index';
+import { queryRemoteCustomers } from './remoteQuery';
 
 interface Customer extends RaRecord {
   id: number;
@@ -106,7 +114,22 @@ const sampleCustomers: Customer[] = [
   { id: 35, name: 'Ian Malcolm', company: 'InGen Bioscience', city: 'Austin', country: 'USA' },
 ];
 
-const dataProvider: DataProvider = {
+const dataProvider: DatagridDXDataProvider = {
+  getGrid: async <RecordType extends RaRecord = RaRecord>(
+    resource: string,
+    params: GetGridParams
+  ) => {
+    if (resource !== 'remote-customers') {
+      throw new Error(`Remote customers: unknown resource ${resource}`);
+    }
+    // The provider's caller-selected generic cannot express this resource-to-Customer mapping.
+    // Keep the cast at this explicit boundary; the evaluator itself remains type-safe.
+    return queryRemoteCustomers(
+      sampleCustomers,
+      resource,
+      params
+    ) as unknown as GetGridResult<RecordType>;
+  },
   getList: async <RecordType extends RaRecord = RaRecord>(
     _resource: string,
     params: GetListParams
@@ -363,10 +386,52 @@ export const CustomerList = (): React.JSX.Element => (
   </List>
 );
 
+export const RemoteCustomerList = (): React.JSX.Element => (
+  <DatagridDXRemote<Customer>
+    paging={{ pageSize: 10 }}
+    pager={{
+      visible: true,
+      allowedPageSizes: [5, 10, 25],
+      showInfo: true,
+      showNavigationButtons: true,
+      showPageSizeSelector: true,
+    }}
+    sorting={{ mode: 'multiple' }}
+    filterRow={{ visible: true }}
+    showBorders={true}
+    showRowLines={true}
+    allowColumnResizing={true}
+    allowColumnReordering={true}
+    columnAutoWidth={true}
+    columnChooser={{ enabled: true, mode: 'select', search: { enabled: true } }}
+    columnFixing={{ enabled: true }}
+  >
+    <Column
+      dataField="id"
+      caption="ID"
+      dataType="number"
+      width={70}
+      allowHiding={false}
+      fixed={true}
+      fixedPosition="left"
+      filterOperations={['=', '<>', '>', '>=', '<', '<=']}
+      selectedFilterOperation="="
+    />
+    <Column dataField="name" caption="Customer Name" dataType="string" />
+    <Column dataField="company" caption="Company" dataType="string" />
+    <Column dataField="country" caption="Country" dataType="string" />
+  </DatagridDXRemote>
+);
+
 export function App(): React.JSX.Element {
   return (
     <Admin dataProvider={dataProvider} theme={defaultLightTheme}>
       <Resource name="customers" list={CustomerList} edit={CustomerEdit} show={CustomerShow} />
+      <Resource
+        name="remote-customers"
+        list={RemoteCustomerList}
+        options={{ label: 'Remote customers' }}
+      />
     </Admin>
   );
 }
