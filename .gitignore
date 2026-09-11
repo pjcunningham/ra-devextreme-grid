@@ -5,9 +5,18 @@ node_modules/
 # Production build artifacts
 dist/
 dist-example/
+dist-remote-fastapi/
 
-# Test coverage
+# Test coverage and artifacts
 coverage/
+test-results/
+playwright-report/
+
+# SQLite databases
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 
 # Local environment and secret files
 .env

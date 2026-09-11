@@ -5,6 +5,8 @@ from fastapi.testclient import TestClient
 from pydantic import JsonValue
 from sqlalchemy.exc import OperationalError
 
+from app.main import LOCAL_DEVELOPMENT_ORIGINS, create_app
+
 
 def nested_not_filter(depth: int) -> list[JsonValue]:
     expression: list[JsonValue] = ["country", "UK"]
@@ -480,3 +482,120 @@ def test_openapi_schema(client: TestClient):
     for name in ("GridRequest", "GridLoadOptions", "GridSortDescriptor"):
         assert components[name]["additionalProperties"] is False
     assert set(components["GridResponse"]["properties"]) == {"data", "totalCount"}
+
+
+def test_cors_development_origins_configured(test_engine):
+    cors_app = create_app(
+        engine=test_engine,
+        cors_origins=LOCAL_DEVELOPMENT_ORIGINS,
+    )
+    with TestClient(cors_app) as cors_client:
+        # Allowed origin 1: 127.0.0.1:5174 preflight
+        preflight1 = cors_client.options(
+            "/api/customers/grid",
+            headers={
+                "Origin": "http://127.0.0.1:5174",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+        assert preflight1.status_code == 200
+        assert (
+            preflight1.headers.get("access-control-allow-origin")
+            == "http://127.0.0.1:5174"
+        )
+        assert "POST" in preflight1.headers.get("access-control-allow-methods", "")
+        assert (
+            "content-type"
+            in preflight1.headers.get("access-control-allow-headers", "").lower()
+        )
+
+        # Allowed origin 2: localhost:5174 preflight
+        preflight2 = cors_client.options(
+            "/api/customers/grid",
+            headers={
+                "Origin": "http://localhost:5174",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+        assert preflight2.status_code == 200
+        assert (
+            preflight2.headers.get("access-control-allow-origin")
+            == "http://localhost:5174"
+        )
+
+        # Allowed origin POST request
+        post_resp = cors_client.post(
+            "/api/customers/grid",
+            json={"loadOptions": {"take": 1}},
+            headers={"Origin": "http://127.0.0.1:5174"},
+        )
+        assert post_resp.status_code == 200
+        assert (
+            post_resp.headers.get("access-control-allow-origin")
+            == "http://127.0.0.1:5174"
+        )
+
+        # Disallowed origin preflight
+        disallowed_preflight = cors_client.options(
+            "/api/customers/grid",
+            headers={
+                "Origin": "http://evil.com",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+        assert "access-control-allow-origin" not in disallowed_preflight.headers
+
+        # Disallowed origin POST
+        disallowed_post = cors_client.post(
+            "/api/customers/grid",
+            json={"loadOptions": {"take": 1}},
+            headers={"Origin": "http://evil.com"},
+        )
+        assert disallowed_post.status_code == 200
+        assert "access-control-allow-origin" not in disallowed_post.headers
+
+
+def test_cors_no_wildcards():
+    assert "*" not in LOCAL_DEVELOPMENT_ORIGINS
+    for origin in LOCAL_DEVELOPMENT_ORIGINS:
+        assert origin in ("http://127.0.0.1:5174", "http://localhost:5174")
+
+
+def test_cors_disabled_by_default(client: TestClient):
+    # Default app in conftest has no cors_origins configured
+    response = client.post(
+        "/api/customers/grid",
+        json={"loadOptions": {"take": 1}},
+        headers={"Origin": "http://127.0.0.1:5174"},
+    )
+    assert response.status_code == 200
+    assert "access-control-allow-origin" not in response.headers
+
+
+def test_grid_database_url_env_override(monkeypatch, tmp_path):
+    from app.database import (
+        DEFAULT_DATABASE_URL,
+        get_database_url,
+        get_default_engine,
+        reset_default_engine,
+    )
+
+    try:
+        reset_default_engine()
+        # Default when no env var
+        monkeypatch.delenv("GRID_DATABASE_URL", raising=False)
+        assert get_database_url() == DEFAULT_DATABASE_URL
+
+        # Override via env var
+        custom_db = tmp_path / "custom.db"
+        custom_url = f"sqlite:///{custom_db}"
+        monkeypatch.setenv("GRID_DATABASE_URL", custom_url)
+        assert get_database_url() == custom_url
+
+        engine = get_default_engine()
+        assert str(engine.url) == custom_url
+    finally:
+        reset_default_engine()

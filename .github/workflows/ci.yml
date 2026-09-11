@@ -46,6 +46,9 @@ jobs:
       - name: Build example application
         run: pnpm build:example
 
+      - name: Build remote FastAPI example application
+        run: pnpm build:remote-fastapi
+
       - name: Verify package contents
         run: pnpm pack --pack-destination "$RUNNER_TEMP" --json
 
@@ -75,3 +78,48 @@ jobs:
 
       - name: Run pytest
         run: uv run pytest
+
+  e2e:
+    name: Browser E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.20.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install backend dependencies
+        run: uv sync --locked --directory examples/remote-fastapi/backend
+
+      - name: Run E2E tests
+        run: pnpm test:e2e
+
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7

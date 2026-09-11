@@ -1,10 +1,70 @@
-# FastAPI Reference Backend for `ra-devextreme-grid`
+# FastAPI Reference Backend & Browser Example for `ra-devextreme-grid`
 
-This **FastAPI + SQLModel**, **UV**-managed example implements server-side paging, ordered multi-column sorting, secure remote filtering, conditional **filtered** totals, and strict request validation for `DatagridDXRemote` / `dataProvider.getGrid()`.
+This **FastAPI + SQLModel**, **UV**-managed reference implementation and dedicated **React-Admin + Vite** frontend demonstrate real end-to-end browser integration for `DatagridDXRemote` / `dataProvider.getGrid()`.
 
-It is a read-only reference backend, not a production deployment or a wired browser application. See the [Phase 7 report](../../docs/phase-7-report.md) for executed tests, native DevExtreme evidence, HTTP results and limitations.
+It proves server-side paging, ordered multi-column sorting, secure remote filtering, date-only transport normalization, HTTP 422 error display, and native DevExtreme loading panels over real HTTP connections with development CORS.
 
-## Getting Started
+See the [Phase 7B report](../../docs/phase-7b-report.md) for complete browser architecture, captured request payloads, and test results.
+
+## Running the Real Browser Example
+
+Running the full browser example requires two terminal windows:
+
+### Terminal 1: FastAPI Reference Backend
+
+```sh
+uv run --directory examples/remote-fastapi/backend \
+    uvicorn app.main:app \
+    --host 127.0.0.1 \
+    --port 8000
+```
+
+The server listens at `http://127.0.0.1:8000`. First startup creates `backend/data/customers.db` and idempotently seeds 100 customer records.
+
+### Terminal 2: Dedicated React-Admin Frontend
+
+```sh
+pnpm dev:remote-fastapi
+```
+
+The frontend launches at `http://127.0.0.1:5174` (with `--strictPort`). Open your browser to:
+
+```text
+http://127.0.0.1:5174
+```
+
+> **Note on DevExtreme Trial / Evaluation**: DevExtreme will output standard evaluation/license warnings in the browser console if a commercial license key is not supplied. These are benign and do not impair functionality.
+
+## Running Automated End-to-End Tests
+
+The browser test suite runs 13 end-to-end scenarios under Chromium using Playwright:
+
+```sh
+# Install Chromium browser binaries (first-time only)
+pnpm exec playwright install chromium
+
+# Run the Playwright test suite
+pnpm test:e2e
+
+# Run with headed browser window
+pnpm test:e2e:headed
+```
+
+Playwright coordinates the dual-server lifecycle (FastAPI on 8000 and Vite on 5174) and configures the browser in the `Asia/Tokyo` timezone to definitively verify date-only transport normalization.
+
+## Development CORS Configuration
+
+The reference backend configures FastAPI `CORSMiddleware` with strictly scoped origins:
+
+- **Allowed Origins**: `http://127.0.0.1:5174`, `http://localhost:5174`
+- **Allowed HTTP Methods**: `POST`, `OPTIONS`
+- **Allowed Headers**: `Content-Type`
+- **Credentials**: Disabled (`allow_credentials=False`)
+- **Wildcards**: Strictly forbidden (`*` is not used)
+
+> **Important**: This CORS policy is strictly designed for local development of this example. Production systems must configure CORS according to their own deployment topology, authentication mechanism, and security policies.
+
+## Getting Started (Backend Development & Unit Tests)
 
 Requires [UV](https://github.com/astral-sh/uv) (v0.5+) and Python 3.13+ (UV can provision Python).
 

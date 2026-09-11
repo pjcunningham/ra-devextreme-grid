@@ -16,6 +16,15 @@ export default tsPlugin.config(
   },
   prettierConfig,
   {
-    ignores: ['dist/**', 'dist-example/**', 'node_modules/**', '.junie/**', 'coverage/**'],
+    ignores: [
+      'dist/**',
+      'dist-example/**',
+      'dist-remote-fastapi/**',
+      'node_modules/**',
+      '.junie/**',
+      'coverage/**',
+      'test-results/**',
+      'playwright-report/**',
+    ],
   }
 );

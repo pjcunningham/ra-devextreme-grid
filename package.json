@@ -18,13 +18,17 @@
   ],
   "scripts": {
     "dev": "vite examples/basic",
+    "dev:remote-fastapi": "vite examples/remote-fastapi/frontend --host 127.0.0.1 --port 5174 --strictPort",
     "build": "vite build",
     "build:example": "vite build examples/basic --outDir ../../dist-example --emptyOutDir",
+    "build:remote-fastapi": "vite build examples/remote-fastapi/frontend --outDir ../../../dist-remote-fastapi --emptyOutDir",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
   },
   "peerDependencies": {
     "devextreme": "^26.1.0",
@@ -35,6 +39,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",
+    "@playwright/test": "1.63.0",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "^16.2.0",
     "@types/node": "^22.13.0",

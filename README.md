@@ -5,9 +5,11 @@
 [![CI](https://github.com/pjcunningham/ra-devextreme-grid/actions/workflows/ci.yml/badge.svg)](https://github.com/pjcunningham/ra-devextreme-grid/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Status: Early Development (Phase 7 Implemented)
+## Status: Early Development (Phase 7B Implemented)
 
 `ra-devextreme-grid` is currently under active early development and is **not yet production-ready**.
+
+**Phase 7B: Browser-to-FastAPI End-to-End Example** proves the full browser-to-database integration using a dedicated React-Admin frontend (`examples/remote-fastapi/frontend`), development CORS on the reference backend, a real HTTP `getGrid()` DataProvider with date-only transport normalization, and a complete Playwright Chromium E2E suite executed in the `Asia/Tokyo` timezone. See the [FastAPI Example & Browser Demo](./examples/remote-fastapi/README.md) and [Phase 7B report](./docs/phase-7b-report.md).
 
 **Phase 7: Secure Remote Filtering** extends the UV-managed [FastAPI reference backend](./examples/remote-fastapi/README.md) with a typed, bounded DevExtreme-to-SQLAlchemy filter compiler, filtered total counts, and deterministic multi-column sorting and paging. The example documents date-only transport and intentional NULL/collation limitations.
 

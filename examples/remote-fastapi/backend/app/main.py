@@ -1,8 +1,9 @@
-from collections.abc import AsyncGenerator, Generator
+from collections.abc import AsyncGenerator, Generator, Sequence
 from contextlib import asynccontextmanager
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy.engine import Engine
 from sqlmodel import Session, SQLModel
@@ -13,8 +14,17 @@ from app.grid.models import GridRequest, GridResponse
 from app.grid.query import execute_customer_grid_query
 from app.seed import seed_customers_if_empty
 
+LOCAL_DEVELOPMENT_ORIGINS: tuple[str, ...] = (
+    "http://127.0.0.1:5174",
+    "http://localhost:5174",
+)
 
-def create_app(engine: Engine | None = None) -> FastAPI:
+
+def create_app(
+    engine: Engine | None = None,
+    *,
+    cors_origins: Sequence[str] = (),
+) -> FastAPI:
     """Create and configure the FastAPI application."""
     effective_engine = engine or get_default_engine()
 
@@ -31,6 +41,15 @@ def create_app(engine: Engine | None = None) -> FastAPI:
         version="0.1.0",
         lifespan=lifespan,
     )
+
+    if cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=list(cors_origins),
+            allow_credentials=False,
+            allow_methods=["POST", "OPTIONS"],
+            allow_headers=["Content-Type"],
+        )
 
     if engine is not None:
 
@@ -68,4 +87,4 @@ def create_app(engine: Engine | None = None) -> FastAPI:
     return app
 
 
-app = create_app()
+app = create_app(cors_origins=LOCAL_DEVELOPMENT_ORIGINS)
