@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import JsonValue
+from sqlalchemy import event
 from sqlalchemy.exc import OperationalError
 
 from app.main import LOCAL_DEVELOPMENT_ORIGINS, create_app
@@ -79,6 +80,115 @@ def test_post_customers_grid_total_count_omitted(client: TestClient):
     data_false = response_false.json()
     assert "totalCount" not in data_false
     assert len(data_false["data"]) == 5
+
+
+@pytest.mark.parametrize(
+    "count_options", [{}, {"requireTotalCount": False}, {"requireTotalCount": True}]
+)
+def test_summary_response_is_positional_filtered_and_count_independent(
+    client, count_options
+):
+    response = client.post(
+        "/api/customers/grid",
+        json={
+            "loadOptions": {
+                "filter": ["country", "=", "UK"],
+                "take": 5,
+                **count_options,
+                "totalSummary": [
+                    {"selector": "age", "summaryType": "max"},
+                    {"summaryType": "count"},
+                    {"selector": "age", "summaryType": "avg"},
+                    {"selector": "age", "summaryType": "min"},
+                    {"selector": "age", "summaryType": "max"},
+                ],
+            }
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["summary"] == [62, 10, 41.375, 22, 62]
+    assert len(body["data"]) == 5
+    assert all(row["country"] == "UK" for row in body["data"])
+    assert body["data"][0]["age"] is None
+    assert ("totalCount" in body) is bool(count_options.get("requireTotalCount"))
+    if "totalCount" in body:
+        assert body["totalCount"] == 10
+
+
+@pytest.mark.parametrize(
+    "summary_options", [{}, {"totalSummary": None}, {"totalSummary": []}]
+)
+def test_inactive_summary_response_omits_property(client, summary_options):
+    response = client.post("/api/customers/grid", json={"loadOptions": summary_options})
+    assert response.status_code == 200
+    assert "summary" not in response.json()
+
+
+def test_empty_summary_response_retains_null_positions(client):
+    response = client.post(
+        "/api/customers/grid",
+        json={
+            "loadOptions": {
+                "filter": ["id", ">", 1000],
+                "totalSummary": [
+                    {"selector": "age", "summaryType": kind}
+                    for kind in ["count", "sum", "avg", "min", "max"]
+                ],
+            }
+        },
+    )
+    assert response.status_code == 200
+    assert response.json() == {"data": [], "summary": [0, 0, None, None, None]}
+
+
+@pytest.mark.parametrize(
+    "load_options",
+    [
+        {"totalSummary": [{"summaryType": "custom", "selector": "age"}]},
+        {"totalSummary": [{"summaryType": "count", "selector": None}]},
+        {"totalSummary": [{"summaryType": "avg"}]},
+        {"totalSummary": [{"summaryType": "count", "extra": True}]},
+        {"totalSummary": [{"summaryType": "count"}] * 33},
+        {"totalSummary": {"summaryType": "count"}},
+        {
+            "totalSummary": [
+                {"summaryType": "count", "selector": "age; DROP TABLE customer"}
+            ]
+        },
+        {"totalSummary": [{"summaryType": "sum", "selector": "__dict__"}]},
+        {"totalSummary": [{"summaryType": "avg", "selector": "customer.age"}]},
+        {"totalSummary": [{"summaryType": "max", "selector": "password_hash"}]},
+        {"totalSummary": [{"summaryType": "min", "selector": "joined_on"}]},
+        {
+            "sort": [{"selector": "password_hash", "desc": False}],
+            "totalSummary": [{"summaryType": "count"}],
+        },
+        {
+            "filter": ["name", "between", ["a", "z"]],
+            "totalSummary": [{"summaryType": "count"}],
+        },
+    ],
+)
+def test_invalid_summary_request_returns_422_before_sql(
+    client, test_engine, load_options
+):
+    executed = []
+
+    def record(_conn, _cursor, statement, _parameters, _context, _many):
+        executed.append(statement)
+
+    event.listen(test_engine, "before_cursor_execute", record)
+    try:
+        response = client.post(
+            "/api/customers/grid",
+            json={"loadOptions": {"requireTotalCount": True, **load_options}},
+        )
+    finally:
+        event.remove(test_engine, "before_cursor_execute", record)
+    assert response.status_code == 422
+    assert response.json()["detail"]
+    assert executed == []
 
 
 def test_post_customers_grid_unknown_selector_422(client: TestClient):
@@ -438,7 +548,7 @@ def test_post_customers_grid_invalid_paging_422(client: TestClient):
         {"filter": True},
         {"sort": [{"selector": "country", "desc": False, "extra": True}]},
         {"groupSummary": [{"selector": "age", "summaryType": "sum"}]},
-        {"totalSummary": [{"selector": "age", "summaryType": "sum"}]},
+        {"totalSummary": [{"selector": "age", "summaryType": "custom"}]},
         {"requireGroupCount": True},
         {"searchValue": "UK"},
     ],
@@ -477,11 +587,25 @@ def test_openapi_schema(client: TestClient):
         "requireTotalCount",
         "sort",
         "filter",
+        "totalSummary",
     }
     assert set(components["GridSortDescriptor"]["properties"]) == {"selector", "desc"}
-    for name in ("GridRequest", "GridLoadOptions", "GridSortDescriptor"):
+    assert set(components["GridSummaryDescriptor"]["properties"]) == {
+        "selector",
+        "summaryType",
+    }
+    for name in (
+        "GridRequest",
+        "GridLoadOptions",
+        "GridSortDescriptor",
+        "GridSummaryDescriptor",
+    ):
         assert components[name]["additionalProperties"] is False
-    assert set(components["GridResponse"]["properties"]) == {"data", "totalCount"}
+    assert set(components["GridResponse"]["properties"]) == {
+        "data",
+        "totalCount",
+        "summary",
+    }
 
 
 def test_cors_development_origins_configured(test_engine):

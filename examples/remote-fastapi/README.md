@@ -2,9 +2,11 @@
 
 This **FastAPI + SQLModel**, **UV**-managed reference implementation and dedicated **React-Admin + Vite** frontend demonstrate real end-to-end browser integration for `DatagridDXRemote` / `dataProvider.getGrid()`.
 
-It proves server-side paging, ordered multi-column sorting, secure remote filtering, date-only transport normalization, HTTP 422 error display, and native DevExtreme loading panels over real HTTP connections with development CORS.
+It proves server-side paging, ordered multi-column sorting, secure remote filtering, whole-filtered-dataset total summaries, date-only transport normalization, HTTP 422 error display, and native DevExtreme loading panels over real HTTP connections with development CORS.
 
 See the [Phase 7B report](../../docs/phase-7b-report.md) for complete browser architecture, captured request payloads, and test results.
+
+See the [Phase 8A report](../../docs/phase-8a-report.md) for current summary contracts, executed SQL, browser footer evidence and verification results.
 
 ## Running the Real Browser Example
 
@@ -37,7 +39,7 @@ http://127.0.0.1:5174
 
 ## Running Automated End-to-End Tests
 
-The browser test suite runs 13 end-to-end scenarios under Chromium using Playwright:
+The browser test suite runs 17 end-to-end scenarios under Chromium using Playwright: 13 existing regression scenarios plus four total-summary scenarios.
 
 ```sh
 # Install Chromium browser binaries (first-time only)
@@ -237,7 +239,7 @@ Returns IDs `[48,18,58,78,38]`, **`totalCount: 10`**, identically on repeated re
 
 ## React-Admin DataProvider Integration
 
-This is application transport guidance, **not browser-to-FastAPI wiring**. The basic example still uses its in-memory provider. CORS and launch/origin configuration are not added here. The non-grid methods in `baseDataProvider` must point at real application endpoints; this backend implements only the read-only grid endpoint.
+The dedicated `frontend/` example provides browser-to-FastAPI wiring and development CORS as described above; the basic example still uses its in-memory provider. The snippet below is application transport guidance. The non-grid methods in `baseDataProvider` must point at real application endpoints; this backend implements only the read-only grid endpoint.
 
 Copy/use the example-local [date helper](./dateOnlyFilter.ts) alongside your provider (it is **not** an npm package export):
 
@@ -312,8 +314,92 @@ Preserve these operators and exclusive next-day bounds exactly. Do not expand da
 
 ## Limitations and Next Phases
 
-- No `anyof`/`noneof`, direct `between`, Header Filter distinct values, Search Panel, Filter Builder UI enablement, grouping, summaries, group paging, relationships, editing or state persistence.
-- No authentication/RBAC, CORS, browser application wiring, arbitrary-resource framework or Python package extraction. Add deployment/access controls in your application.
+- No `anyof`/`noneof`, direct `between`, Header Filter distinct values, Search Panel, Filter Builder UI enablement, grouping, group summaries, group count, group paging, relationships, editing or state persistence.
+- No authentication/RBAC, arbitrary-resource framework or Python package extraction. CORS is local-development only; add deployment/access controls in your application.
 - SQLite Unicode/collation limitations, ordinary nullable inequality differences, conservative nullable NOT, and application-local date semantics are intentional qualifications to native parity.
-- Recommend a separate **Phase 7B — Browser-to-FastAPI End-to-End Example** before Phase 8: exercise real date transport, Filter Row/network requests and displayed errors. Budget separately for CORS, coordinated launch configuration and documentation.
-- The registry/compiler/query split is a foundation for Phase 8 grouping and summaries, but advanced request/result contracts and aggregation semantics still need design. Neither Phase 7B nor Phase 8 is implemented here.
+- **Phase 7B** browser integration and **Phase 8A** total summaries are implemented. **Phase 8B — Remote Grouping + Group Summaries + Group Count** is next; **Phase 8C — Remote Group Paging** remains deferred.
+- Large integer sums retain SQLite overflow and JavaScript numeric precision limits. No Decimal/bigint/stringified-number contract is introduced.
+
+## Remote Total Summaries (Phase 8A)
+
+Remote summary calculation supports built-in server summary types only. Use native components; formatting stays in the browser:
+
+```tsx
+import { Summary, TotalItem } from 'devextreme-react/data-grid';
+
+<DatagridDXRemote resource="customers" cacheEnabled={false}>
+  {/* Existing native columns */}
+  <Summary>
+    <TotalItem column="id" summaryType="count" displayFormat="Customers: {0}" />
+    <TotalItem
+      column="age"
+      summaryType="avg"
+      displayFormat="Average age: {0}"
+      valueFormat={{ type: 'fixedPoint', precision: 2 }}
+    />
+    <TotalItem column="age" summaryType="min" displayFormat="Minimum age: {0}" />
+    <TotalItem column="age" summaryType="max" displayFormat="Maximum age: {0}" />
+  </Summary>
+</DatagridDXRemote>;
+```
+
+The equivalent safe `summary={{ totalItems: [...] }}` prop is supported. Resolved native options are validated before initial loading, when summary options change, and before subsequent loads. `calculateCustomSummary`, custom/unknown types, group items, editing recalculation, function selectors and `skipEmptyValues={false}` are unsupported; harmless `customizeText`/formatting callbacks remain allowed. Native JSX is broadly typed, so runtime validation is essential.
+
+### Ordered wire contract
+
+```json
+{
+  "loadOptions": {
+    "take": 5,
+    "requireTotalCount": true,
+    "filter": ["country", "=", "UK"],
+    "totalSummary": [
+      { "selector": "id", "summaryType": "count" },
+      { "selector": "age", "summaryType": "avg" },
+      { "selector": "age", "summaryType": "min" },
+      { "selector": "age", "summaryType": "max" }
+    ]
+  }
+}
+```
+
+For the UK seed subset, the response contains five customer records, `totalCount: 10`, and `summary: [10, 41.375, 22, 62]`. These are totals for all ten matching rows, not the five visible rows. Sorting, page size, and page index do not affect them. Clearing the filter restores the complete dataset totals.
+
+`summary[i]` corresponds to `totalSummary[i]`; duplicates retain separate positions. Do not return selector-keyed objects or formatted strings. The generic adapter permits JSON scalar strings/booleans/null and finite numbers, but this backend currently produces numeric/null aggregate values. It requires exact response length, rejects holes and non-JSON-safe values, and rejects unsolicited summaries.
+
+Native grids emit descriptor arrays containing only `selector` and `summaryType`. The adapter also normalizes the public native single-object form to an array before transport. The HTTP model accepts arrays only. `count` may omit `selector` (e.g. a native item with only `showInColumn`); never invent a selector. Supplied selectors must be nonblank strings even for count. Extra fields, missing/custom/unknown types and explicit null selectors reject. Inactive absent/null/empty collections omit the response `summary` property.
+
+Both sides enforce `MAX_SUMMARY_ITEMS = 32`, a modest expression-cost bound above the example's four items; duplicates consume slots. Valid selector text is not sanitized: unknown, dotted, dunder and SQL-looking names fail closed through the shared registry. Normal caching may omit `totalSummary` on page loads and retain prior footers. This example uses `cacheEnabled={false}`, so paging/sorting request summaries again.
+
+### Capabilities and NULL semantics
+
+| Field type | Fields                               | count | sum | avg | min | max |
+| ---------- | ------------------------------------ | ----- | --- | --- | --- | --- |
+| INTEGER    | `id`, `age`                          | Yes   | Yes | Yes | Yes | Yes |
+| STRING     | `name`, `company`, `city`, `country` | Yes   | No  | No  | No  | No  |
+| BOOLEAN    | `active`                             | Yes   | No  | No  | No  | No  |
+| DATE       | `joined_on`                          | Yes   | No  | No  | No  | No  |
+
+Count means **row count**, including NULLs in the selected column, as observed in DevExtreme 26.1.4. Other numeric aggregates skip NULLs; zero and duplicates participate. For ages `[null, 0, 20, 30, 30, 40]`, count/sum/avg/min/max are `[6, 120, 24, 0, 40]`.
+
+| Input                 | count | sum | avg  | min  | max  |
+| --------------------- | ----- | --- | ---- | ---- | ---- |
+| One all-NULL row      | 1     | 0   | null | null | null |
+| Empty filtered result | 0     | 0   | null | null | null |
+
+Undefined average/minimum/maximum are JSON `null`, not `NaN`. Native remote footers show blank values beside their labels; native local `NaN` items disappear instead. This is an intentional display difference. The example empty footer shows `Customers: 0`, `Average age:`, `Minimum age:`, `Maximum age:`. Average precision is retained in JSON (UK `41.375`); client formatting displays `41.38`.
+
+### SQL and count independence
+
+The immutable shared `GridField` registry is the sole selector/capability trust boundary. `summaries.py` is a pure expression builder; it has no session or execution API. `query.py` compiles the filter once, validates sorting and all summaries, then executes the optional count, one summary SELECT, and the records SELECT. No SQL runs for invalid query structure.
+
+```sql
+SELECT COUNT(*), COALESCE(SUM(customer.age), 0),
+       AVG(customer.age), MIN(customer.age), MAX(customer.age)
+FROM customer
+WHERE <shared bound filter predicate>
+```
+
+All descriptors use one aggregate SELECT, not one per item, with explicit Customer FROM even for selector-less count and no ORDER BY/OFFSET/LIMIT. Fixed SQLAlchemy dispatch prevents client-controlled SQL functions; no raw SQL or Python aggregation over records is used. A row-returning execution path preserves a one-element list for a single descriptor.
+
+`totalCount` is independently requested by `requireTotalCount: true`, and remains a separate filtered COUNT query. A count summary is returned only at its requested summary position. Summaries work with `requireTotalCount` false/omitted, and `totalCount` stays absent. Summary plus records executes two SELECTs, or three with `totalCount`; inactive summaries add none. See the report and execution-listener tests for actual SQL evidence.

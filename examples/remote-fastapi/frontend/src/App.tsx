@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Admin, Resource, defaultLightTheme, type RaRecord } from 'react-admin';
-import { Column } from 'devextreme-react/data-grid';
+import { Column, Summary, TotalItem } from 'devextreme-react/data-grid';
 import { DatagridDXRemote } from '../../../../src/index';
 import { dataProvider, onGridSuccess } from './dataProvider';
 
@@ -142,6 +142,22 @@ export function RemoteCustomerList(): React.JSX.Element {
           filterOperations={[...dateFilterOperations]}
           selectedFilterOperation="="
         />
+        <Summary>
+          <TotalItem
+            column="id"
+            summaryType="count"
+            showInColumn="name"
+            displayFormat="Customers: {0}"
+          />
+          <TotalItem
+            column="age"
+            summaryType="avg"
+            displayFormat="Average age: {0}"
+            valueFormat={{ type: 'fixedPoint', precision: 2 }}
+          />
+          <TotalItem column="age" summaryType="min" displayFormat="Minimum age: {0}" />
+          <TotalItem column="age" summaryType="max" displayFormat="Maximum age: {0}" />
+        </Summary>
       </DatagridDXRemote>
     </div>
   );

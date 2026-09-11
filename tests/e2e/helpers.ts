@@ -1,4 +1,5 @@
 import { type Page, type Request, type Response, expect } from '@playwright/test';
+import type { GetGridSummaryDescriptor, GetGridSummaryValue } from '../../src/remote/types';
 
 export interface GridRequestBody {
   loadOptions: {
@@ -6,13 +7,15 @@ export interface GridRequestBody {
     take?: number;
     requireTotalCount?: boolean;
     sort?: Array<{ selector: string; desc: boolean }>;
-    filter?: unknown[];
+    filter?: unknown[] | null;
+    totalSummary?: GetGridSummaryDescriptor[];
   };
 }
 
 export interface GridResponseBody {
   data: Array<Record<string, unknown>>;
   totalCount?: number;
+  summary?: GetGridSummaryValue[];
 }
 
 /**
@@ -40,7 +43,7 @@ export function attachPageErrorListeners(page: Page): void {
         return;
       }
       // Fail on unexpected client application errors
-      throw new Error(`Browser console error: ${text}`);
+      throw new Error(`Browser console error: ${text} (${msg.location().url})`);
     }
   });
 }

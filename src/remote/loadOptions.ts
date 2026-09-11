@@ -1,5 +1,46 @@
 import type { LoadOptions } from 'devextreme/common/data';
-import type { GetGridLoadOptions, GetGridSortDescriptor } from './types';
+import type { GetGridLoadOptions, GetGridSortDescriptor, GetGridSummaryDescriptor } from './types';
+
+export const MAX_SUMMARY_ITEMS = 32;
+
+export function normalizeTotalSummary(value: unknown): GetGridSummaryDescriptor[] {
+  const items = Array.isArray(value) ? value : [value];
+  if (items.length > MAX_SUMMARY_ITEMS) {
+    throw new Error(`DatagridDXRemote totalSummary supports at most ${MAX_SUMMARY_ITEMS} items.`);
+  }
+  return Array.from(items, (item: unknown) => {
+    if (
+      !item ||
+      typeof item !== 'object' ||
+      Array.isArray(item) ||
+      ![Object.prototype, null].includes(Object.getPrototypeOf(item)) ||
+      Reflect.ownKeys(item).some((key) => key !== 'selector' && key !== 'summaryType')
+    ) {
+      throw new Error(
+        'DatagridDXRemote totalSummary requires explicit summary descriptor objects.'
+      );
+    }
+    const { selector, summaryType } = item as Record<string, unknown>;
+    if (
+      summaryType !== 'count' &&
+      summaryType !== 'sum' &&
+      summaryType !== 'avg' &&
+      summaryType !== 'min' &&
+      summaryType !== 'max'
+    ) {
+      throw new Error(
+        'DatagridDXRemote totalSummary supports built-in count, sum, avg, min, max only.'
+      );
+    }
+    if (selector === undefined && summaryType === 'count') return { summaryType };
+    if (typeof selector !== 'string' || !selector.trim()) {
+      throw new Error(
+        'DatagridDXRemote totalSummary requires a nonempty string selector except for count.'
+      );
+    }
+    return { selector, summaryType };
+  });
+}
 
 function rejectFunctions(value: unknown, seen = new WeakSet<object>()): void {
   if (typeof value === 'function') {
@@ -34,15 +75,15 @@ function normalizeSort(value: unknown): GetGridSortDescriptor[] {
 }
 
 export function normalizeLoadOptions<T>(options: LoadOptions<T>): GetGridLoadOptions {
-  for (const field of ['group', 'groupSummary', 'totalSummary'] as const) {
+  for (const field of ['group', 'groupSummary'] as const) {
     if (isActive(options[field])) {
       throw new Error(
-        `DatagridDXRemote does not support ${field}: grouping and summaries are unavailable in Phase 5.`
+        `DatagridDXRemote does not support ${field}: grouping and group summaries are unavailable.`
       );
     }
   }
   if (options.requireGroupCount) {
-    throw new Error('DatagridDXRemote does not support requireGroupCount in Phase 5.');
+    throw new Error('DatagridDXRemote does not support requireGroupCount.');
   }
   for (const field of [
     'select',
@@ -96,6 +137,9 @@ export function normalizeLoadOptions<T>(options: LoadOptions<T>): GetGridLoadOpt
       throw new Error('DatagridDXRemote filter must be a native expression array or null.');
     }
     result.filter = options.filter;
+  }
+  if (isActive(options.totalSummary)) {
+    result.totalSummary = normalizeTotalSummary(options.totalSummary);
   }
   return result;
 }

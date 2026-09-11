@@ -1,15 +1,20 @@
 from datetime import date
+from typing import get_args
 
 import pytest
+from fastapi import FastAPI
 from pydantic import ValidationError
 
 from app.grid.models import (
     DEFAULT_PAGE_SIZE,
     MAX_PAGE_SIZE,
+    MAX_SUMMARY_ITEMS,
     GridLoadOptions,
     GridRequest,
     GridResponse,
     GridSortDescriptor,
+    GridSummaryDescriptor,
+    GridSummaryType,
 )
 from app.models import CustomerRead
 
@@ -45,6 +50,7 @@ def test_grid_load_options_defaults():
     assert opts.require_total_count is None
     assert opts.sort is None
     assert opts.filter is None
+    assert opts.total_summary is None
 
 
 def test_grid_load_options_none_coercion():
@@ -132,3 +138,192 @@ def test_grid_response_model():
     dump_no_count = resp_no_count.model_dump(by_alias=True, exclude_unset=True)
     assert "totalCount" not in dump_no_count
     assert len(dump_no_count["data"]) == 1
+    assert resp_no_count.summary is None
+    assert "summary" not in dump_no_count
+    assert dump_no_count["data"][0]["age"] is None
+
+
+SUMMARY_TYPES = ("count", "sum", "avg", "min", "max")
+
+
+def test_grid_summary_type_literals():
+    assert set(get_args(GridSummaryType)) == set(SUMMARY_TYPES)
+
+
+@pytest.mark.parametrize("summary_type", SUMMARY_TYPES)
+@pytest.mark.parametrize("key", ["summaryType", "summary_type"])
+def test_grid_summary_descriptor_aliases(summary_type, key):
+    descriptor = GridSummaryDescriptor.model_validate(
+        {"selector": "age", key: summary_type}
+    )
+    assert descriptor.selector == "age"
+    assert descriptor.summary_type == summary_type
+    assert descriptor.model_dump(by_alias=True) == {
+        "selector": "age",
+        "summaryType": summary_type,
+    }
+
+
+def test_grid_summary_count_can_omit_selector():
+    descriptor = GridSummaryDescriptor.model_validate({"summaryType": "count"})
+    assert descriptor.selector is None
+    assert descriptor.model_fields_set == {"summary_type"}
+    assert descriptor.model_dump(by_alias=True, exclude_unset=True) == {
+        "summaryType": "count"
+    }
+
+
+@pytest.mark.parametrize("summary_type", SUMMARY_TYPES[1:])
+def test_grid_summary_non_count_requires_selector(summary_type):
+    with pytest.raises(ValidationError):
+        GridSummaryDescriptor.model_validate({"summaryType": summary_type})
+
+
+@pytest.mark.parametrize("summary_type", SUMMARY_TYPES)
+@pytest.mark.parametrize("selector", [None, "", " \t\n", 1, 1.5, True, b"age", [], {}])
+def test_grid_summary_rejects_invalid_supplied_selector(summary_type, selector):
+    with pytest.raises(ValidationError):
+        GridSummaryDescriptor.model_validate(
+            {"selector": selector, "summaryType": summary_type}
+        )
+
+
+def test_grid_summary_preserves_nonblank_selector():
+    descriptor = GridSummaryDescriptor(selector=" age ", summary_type="sum")
+    assert descriptor.selector == " age "
+
+
+@pytest.mark.parametrize("summary_type", [None, "", "SUM", "average", 1, True, b"sum"])
+def test_grid_summary_rejects_invalid_type(summary_type):
+    with pytest.raises(ValidationError):
+        GridSummaryDescriptor.model_validate(
+            {"selector": "age", "summaryType": summary_type}
+        )
+
+
+@pytest.mark.parametrize(
+    "descriptor",
+    [
+        {},
+        {"selector": "age"},
+        {"summaryType": "count", "extra": True},
+        {"summaryType": "count", "desc": False},
+        {"summaryType": "count", "summary_type": "sum"},
+        None,
+        "count",
+        1,
+        [],
+        ["age", "sum"],
+    ],
+)
+def test_grid_load_options_rejects_malformed_summary_descriptor(descriptor):
+    with pytest.raises(ValidationError):
+        GridLoadOptions.model_validate({"totalSummary": [descriptor]})
+
+
+@pytest.mark.parametrize("key", ["totalSummary", "total_summary"])
+def test_grid_load_options_summary_aliases(key):
+    summaries = [{"summaryType": "count"}, {"selector": "age", "summaryType": "avg"}]
+    request = GridRequest.model_validate({"loadOptions": {key: summaries}})
+    assert request.load_options.total_summary == [
+        GridSummaryDescriptor(summary_type="count"),
+        GridSummaryDescriptor(selector="age", summary_type="avg"),
+    ]
+    assert request.model_dump(by_alias=True, exclude_unset=True) == {
+        "loadOptions": {"totalSummary": summaries}
+    }
+
+
+@pytest.mark.parametrize("value", [None, []])
+def test_grid_load_options_optional_summary(value):
+    options = GridLoadOptions.model_validate({"totalSummary": value})
+    assert options.total_summary == value
+
+
+@pytest.mark.parametrize(
+    "value",
+    [{"summaryType": "count"}, (), ({"summaryType": "count"},), "[]", 1, True],
+)
+def test_grid_load_options_summary_requires_list(value):
+    with pytest.raises(ValidationError) as exc_info:
+        GridLoadOptions.model_validate({"totalSummary": value})
+    assert exc_info.value.errors()[0]["type"] == "list_type"
+
+
+def test_grid_load_options_summary_json_array():
+    request = GridRequest.model_validate_json(
+        '{"loadOptions":{"totalSummary":[{"summaryType":"count"}]}}'
+    )
+    assert request.load_options.total_summary == [
+        GridSummaryDescriptor(summary_type="count")
+    ]
+
+
+def test_grid_load_options_summary_bound_preserves_duplicates_and_order():
+    assert MAX_SUMMARY_ITEMS == 32
+    summaries = [
+        {"selector": "age", "summaryType": SUMMARY_TYPES[index % len(SUMMARY_TYPES)]}
+        for index in range(MAX_SUMMARY_ITEMS)
+    ]
+    options = GridLoadOptions.model_validate({"totalSummary": summaries})
+    assert options.model_dump(by_alias=True, exclude_unset=True) == {
+        "totalSummary": summaries
+    }
+    with pytest.raises(ValidationError) as exc_info:
+        GridLoadOptions.model_validate({"totalSummary": [*summaries, summaries[0]]})
+    error = exc_info.value.errors()[0]
+    assert error["type"] == "too_long"
+    assert error["ctx"]["max_length"] == 32
+
+
+@pytest.mark.parametrize("summary", [None, [], [0, 3.5, "2024-01-01", True, None]])
+def test_grid_response_explicit_summary_retains_nulls(summary):
+    response = GridResponse(data=[], total_count=None, summary=summary)
+    assert response.model_dump(by_alias=True, exclude_unset=True) == {
+        "data": [],
+        "totalCount": None,
+        "summary": summary,
+    }
+
+
+def test_grid_response_summary_accepts_nested_json():
+    summary = [{"values": [1, None]}, [True, "value"]]
+    response = GridResponse(data=[], summary=summary)
+    assert response.model_dump(mode="json", exclude_unset=True) == {
+        "data": [],
+        "summary": summary,
+    }
+
+
+@pytest.mark.parametrize("summary", [[object()], [date(2024, 1, 1)], {"sum": 1}, "[]"])
+def test_grid_response_summary_rejects_non_json_values(summary):
+    with pytest.raises(ValidationError):
+        GridResponse(data=[], summary=summary)
+
+
+def test_grid_summary_openapi_schemas():
+    app = FastAPI()
+
+    @app.post("/grid", response_model=GridResponse)
+    def load_grid(payload: GridRequest):
+        return GridResponse(data=[])
+
+    schemas = app.openapi()["components"]["schemas"]
+    descriptor = schemas["GridSummaryDescriptor"]
+    assert descriptor["additionalProperties"] is False
+    assert descriptor["required"] == ["summaryType"]
+    assert set(descriptor["properties"]["summaryType"]["enum"]) == set(SUMMARY_TYPES)
+    options = schemas["GridLoadOptions"]
+    assert "totalSummary" not in options.get("required", [])
+    total_summary = options["properties"]["totalSummary"]
+    array = next(item for item in total_summary["anyOf"] if item["type"] == "array")
+    assert array["maxItems"] == MAX_SUMMARY_ITEMS
+    assert array["items"]["$ref"].endswith("/GridSummaryDescriptor")
+    assert {"type": "null"} in total_summary["anyOf"]
+    response = schemas["GridResponse"]
+    assert "summary" not in response["required"]
+    assert {"type": "null"} in response["properties"]["summary"]["anyOf"]
+    assert any(
+        item.get("type") == "array"
+        for item in response["properties"]["summary"]["anyOf"]
+    )

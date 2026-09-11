@@ -6,6 +6,7 @@ export type {
   DatagridDXProps,
   DatagridDXPaginationProps,
   DatagridDXRemoteProps,
+  DatagridDXRemoteSummaryOptions,
   DatagridDXSelectionOptions,
   DatagridDXRowClick,
   DatagridDXFilterRowOptions,
@@ -19,4 +20,7 @@ export type {
   GetGridParams,
   GetGridResult,
   GetGridSortDescriptor,
+  GetGridSummaryType,
+  GetGridSummaryDescriptor,
+  GetGridSummaryValue,
 } from './remote/types';

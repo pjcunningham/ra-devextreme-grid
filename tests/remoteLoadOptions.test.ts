@@ -71,7 +71,6 @@ describe('remote load options', () => {
   it.each([
     'group',
     'groupSummary',
-    'totalSummary',
     'requireGroupCount',
     'select',
     'expand',
@@ -128,5 +127,71 @@ describe('remote load options', () => {
       >();
     };
     expectTypeOf(check).toBeFunction();
+  });
+
+  it('normalizes fresh ordered summary objects without changing selectors or inputs', () => {
+    const items = Object.freeze([
+      Object.freeze({ selector: 'age', summaryType: 'max' }),
+      Object.freeze({ selector: 'id', summaryType: 'count' }),
+      Object.freeze({ selector: 'age', summaryType: 'avg' }),
+      Object.freeze({ selector: 'age', summaryType: 'min' }),
+      Object.freeze({ selector: 'age', summaryType: 'max' }),
+      Object.freeze({ summaryType: 'count', selector: undefined }),
+    ]);
+    const result = normalizeLoadOptions({ totalSummary: items } as unknown as LoadOptions);
+    expect(result.totalSummary).toEqual([...items.slice(0, -1), { summaryType: 'count' }]);
+    expect(result.totalSummary).not.toBe(items);
+    expect(result.totalSummary?.[0]).not.toBe(items[0]);
+    expect(items[5]).toHaveProperty('selector');
+    for (const selector of ['age; DROP TABLE customer', '__dict__', 'customer.age', ' age ']) {
+      expect(normalizeLoadOptions({ totalSummary: { selector, summaryType: 'sum' } })).toEqual({
+        totalSummary: [{ selector, summaryType: 'sum' }],
+      });
+    }
+  });
+
+  it.each([undefined, null, []])('omits inactive summaries %j', (totalSummary) => {
+    expect(normalizeLoadOptions({ totalSummary } as LoadOptions)).toEqual({});
+  });
+
+  it.each([
+    '',
+    'age',
+    1,
+    false,
+    {},
+    new Date(),
+    [null],
+    [undefined],
+    new Array(1),
+    [['age']],
+    { selector: 'age' },
+    { selector: 'age', summaryType: 'custom' },
+    { selector: 'age', summaryType: 'SUM' },
+    { summaryType: 'avg' },
+    { selector: undefined, summaryType: 'min' },
+    { selector: null, summaryType: 'count' },
+    { selector: '', summaryType: 'count' },
+    { selector: '  ', summaryType: 'sum' },
+    { selector: 1, summaryType: 'count' },
+    { selector: () => 1, summaryType: 'count' },
+    { selector: 'age', summaryType: () => 'sum' },
+    { selector: 'age', summaryType: 'sum', extra: true },
+    { summaryType: 'count', calculateCustomSummary: () => 1 },
+    { summaryType: 'count', [Symbol('extra')]: true },
+  ])('rejects malformed summaries %j', (totalSummary) => {
+    expect(() => normalizeLoadOptions({ totalSummary } as LoadOptions)).toThrow(/totalSummary/);
+  });
+
+  it('bounds summary expressions including duplicates at 32', () => {
+    const totalSummary = Array.from({ length: 32 }, () => ({ summaryType: 'count' as const }));
+    expect(
+      normalizeLoadOptions({ totalSummary } as unknown as LoadOptions).totalSummary
+    ).toHaveLength(32);
+    expect(() =>
+      normalizeLoadOptions({
+        totalSummary: [...totalSummary, totalSummary[0]],
+      } as unknown as LoadOptions)
+    ).toThrow(/32/);
   });
 });

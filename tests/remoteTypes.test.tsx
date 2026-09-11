@@ -1,15 +1,25 @@
 import { createRef } from 'react';
 import { describe, expect, expectTypeOf, it } from 'vitest';
-import type { DataGridRef, IDataGridOptions } from 'devextreme-react/data-grid';
+import {
+  Summary,
+  TotalItem,
+  type DataGridRef,
+  type IDataGridOptions,
+} from 'devextreme-react/data-grid';
+import type { Summary as DxGridSummary, SummaryTotalItem } from 'devextreme/ui/data_grid';
 import type { RaRecord } from 'react-admin';
 import {
   DatagridDXRemote,
   type DatagridDXRemoteProps,
+  type DatagridDXRemoteSummaryOptions,
   type DatagridDXDataProvider,
   type GetGridLoadOptions,
   type GetGridParams,
   type GetGridResult,
   type GetGridSortDescriptor,
+  type GetGridSummaryDescriptor,
+  type GetGridSummaryType,
+  type GetGridSummaryValue,
 } from '../src/index';
 
 interface Customer extends RaRecord<string> {
@@ -65,7 +75,6 @@ describe('remote public types', () => {
       | 'groupPanel'
       | 'defaultGroupPanel'
       | 'onGroupPanelChange'
-      | 'summary'
       | 'headerFilter'
       | 'filterBuilder'
       | 'filterBuilderPopup'
@@ -119,6 +128,106 @@ describe('remote public types', () => {
     expect([invalidSource, invalidPaging, invalidKeyExpr, invalidRef]).toHaveLength(4);
   });
 
+  it('exports safe native summary props while preserving presentation and native children', () => {
+    type Item = NonNullable<DatagridDXRemoteSummaryOptions['totalItems']>[number];
+    expectTypeOf<DatagridDXRemoteProps<Customer>['summary']>().toEqualTypeOf<
+      DatagridDXRemoteSummaryOptions | undefined
+    >();
+    expectTypeOf<DatagridDXRemoteProps<Customer>['children']>().toEqualTypeOf<
+      IDataGridOptions<Customer, string>['children']
+    >();
+    expectTypeOf<DatagridDXRemoteSummaryOptions>().toExtend<DxGridSummary>();
+    expectTypeOf<DatagridDXRemoteSummaryOptions['texts']>().toEqualTypeOf<DxGridSummary['texts']>();
+    expectTypeOf<Item>().toExtend<SummaryTotalItem>();
+    expectTypeOf<Item['summaryType']>().toEqualTypeOf<GetGridSummaryType>();
+    expectTypeOf<Item['customizeText']>().toEqualTypeOf<SummaryTotalItem['customizeText']>();
+    expectTypeOf<Item['valueFormat']>().toEqualTypeOf<SummaryTotalItem['valueFormat']>();
+    expectTypeOf<Item['skipEmptyValues']>().toEqualTypeOf<true | undefined>();
+    expectTypeOf<DatagridDXRemoteSummaryOptions['skipEmptyValues']>().toEqualTypeOf<
+      true | undefined
+    >();
+    expectTypeOf<
+      Extract<
+        keyof DatagridDXRemoteSummaryOptions,
+        'calculateCustomSummary' | 'groupItems' | 'recalculateWhileEditing'
+      >
+    >().toEqualTypeOf<never>();
+
+    const summary: DatagridDXRemoteSummaryOptions = {
+      skipEmptyValues: true,
+      texts: { count: 'Rows: {0}' },
+      totalItems: [
+        { summaryType: 'count', showInColumn: 'name' },
+        {
+          summaryType: 'avg',
+          column: 'Age column',
+          skipEmptyValues: true,
+          name: 'average',
+          displayFormat: 'Average: {0}',
+          showInColumn: 'name',
+          cssClass: 'summary',
+          alignment: 'right',
+          customizeText: (info) => info.valueText,
+          valueFormat: { type: 'fixedPoint', precision: 2 },
+        },
+        { summaryType: 'sum', column: 'age', valueFormat: (value: unknown) => String(value) },
+        { summaryType: 'min', column: 'age' },
+        { summaryType: 'max', column: 'age' },
+      ],
+    };
+    const props = <DatagridDXRemote<Customer> summary={summary} />;
+    const children = (
+      <DatagridDXRemote<Customer>>
+        <Summary skipEmptyValues>
+          <TotalItem summaryType="count" showInColumn="name" />
+          <TotalItem column="age" summaryType="avg" valueFormat="fixedPoint" />
+        </Summary>
+      </DatagridDXRemote>
+    );
+    expect([props, children]).toHaveLength(2);
+  });
+
+  it('rejects unsupported semantic summary props at compile time', () => {
+    // @ts-expect-error Custom calculation is not executed by remote summaries.
+    const callback = <DatagridDXRemote summary={{ calculateCustomSummary: () => undefined }} />;
+    // @ts-expect-error Group summaries remain unsupported.
+    const groups = <DatagridDXRemote summary={{ groupItems: [] }} />;
+    // @ts-expect-error Editing recalculation configuration is not exposed.
+    const editing = <DatagridDXRemote summary={{ recalculateWhileEditing: false }} />;
+    // @ts-expect-error Empty-value semantics cannot be overridden.
+    const empty = <DatagridDXRemote summary={{ skipEmptyValues: false }} />;
+    const itemEmpty = (
+      <DatagridDXRemote
+        // @ts-expect-error Item empty-value semantics cannot be overridden.
+        summary={{ totalItems: [{ summaryType: 'count', skipEmptyValues: false }] }}
+      />
+    );
+    // @ts-expect-error Native's default summary type is not an explicit remote aggregate.
+    const missingType = <DatagridDXRemote summary={{ totalItems: [{ column: 'age' }] }} />;
+    // @ts-expect-error Custom summary types are not supported.
+    const custom = <DatagridDXRemote summary={{ totalItems: [{ summaryType: 'custom' }] }} />;
+    // @ts-expect-error Unknown summary types are not supported.
+    const unknown = <DatagridDXRemote summary={{ totalItems: [{ summaryType: 'median' }] }} />;
+    // @ts-expect-error Only count can omit the source column.
+    const missingColumn = <DatagridDXRemote summary={{ totalItems: [{ summaryType: 'sum' }] }} />;
+    const executableColumn = (
+      // @ts-expect-error Executable columns are not supported.
+      <DatagridDXRemote summary={{ totalItems: [{ summaryType: 'count', column: () => 'age' }] }} />
+    );
+    expect([
+      callback,
+      groups,
+      editing,
+      empty,
+      itemEmpty,
+      missingType,
+      custom,
+      unknown,
+      missingColumn,
+      executableColumn,
+    ]).toHaveLength(10);
+  });
+
   it('exports the exact narrow provider contract', () => {
     expectTypeOf<GetGridSortDescriptor>().toEqualTypeOf<{ selector: string; desc: boolean }>();
     expectTypeOf<GetGridLoadOptions>().toEqualTypeOf<{
@@ -127,11 +236,13 @@ describe('remote public types', () => {
       requireTotalCount?: boolean;
       sort?: GetGridSortDescriptor[];
       filter?: unknown[] | null;
+      totalSummary?: GetGridSummaryDescriptor[];
     }>();
     expectTypeOf<GetGridParams>().toEqualTypeOf<{ loadOptions: GetGridLoadOptions }>();
     expectTypeOf<GetGridResult<Customer>>().toEqualTypeOf<{
       data: Customer[];
       totalCount?: number;
+      summary?: GetGridSummaryValue[];
     }>();
     const check = (provider: DatagridDXDataProvider) => {
       expectTypeOf(provider.getGrid<Customer>).parameters.toEqualTypeOf<
@@ -145,5 +256,19 @@ describe('remote public types', () => {
     // @ts-expect-error Remote selectors cannot be executable.
     const invalidSort: GetGridSortDescriptor = { selector: () => 1, desc: false };
     expect(invalidSort).toBeDefined();
+  });
+
+  it('exports ordered built-in summary descriptors and JSON scalar results', () => {
+    expectTypeOf<GetGridSummaryType>().toEqualTypeOf<'count' | 'sum' | 'avg' | 'min' | 'max'>();
+    expectTypeOf<GetGridSummaryValue>().toEqualTypeOf<string | number | boolean | null>();
+    const count: GetGridSummaryDescriptor = { summaryType: 'count' };
+    const avg: GetGridSummaryDescriptor = { selector: 'age', summaryType: 'avg' };
+    // @ts-expect-error Non-count summaries require a selector.
+    const missing: GetGridSummaryDescriptor = { summaryType: 'sum' };
+    // @ts-expect-error Custom summaries are not transportable.
+    const custom: GetGridSummaryDescriptor = { selector: 'age', summaryType: 'custom' };
+    // @ts-expect-error Executable selectors are not transportable.
+    const executable: GetGridSummaryDescriptor = { selector: () => 1, summaryType: 'max' };
+    expect([count, avg, missing, custom, executable]).toHaveLength(5);
   });
 });

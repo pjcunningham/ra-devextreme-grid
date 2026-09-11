@@ -5,6 +5,14 @@ export interface GetGridSortDescriptor {
   desc: boolean;
 }
 
+export type GetGridSummaryType = 'count' | 'sum' | 'avg' | 'min' | 'max';
+
+export type GetGridSummaryDescriptor =
+  | { summaryType: 'count'; selector?: string }
+  | { summaryType: Exclude<GetGridSummaryType, 'count'>; selector: string };
+
+export type GetGridSummaryValue = string | number | boolean | null;
+
 export interface GetGridLoadOptions {
   skip?: number;
   take?: number;
@@ -16,6 +24,7 @@ export interface GetGridLoadOptions {
    * are rejected at runtime. Serialization belongs to the application transport.
    */
   filter?: unknown[] | null;
+  totalSummary?: GetGridSummaryDescriptor[];
 }
 
 export interface GetGridParams {
@@ -25,6 +34,7 @@ export interface GetGridParams {
 export interface GetGridResult<RecordType extends RaRecord = RaRecord> {
   data: RecordType[];
   totalCount?: number;
+  summary?: GetGridSummaryValue[];
 }
 
 export interface DatagridDXDataProvider extends DataProvider {

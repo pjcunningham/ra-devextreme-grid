@@ -4,6 +4,7 @@ import pytest
 
 from app.grid.fields import (
     CUSTOMER_GRID_FIELDS,
+    GridField,
     GridQueryError,
     GridValueType,
     get_customer_sort_column,
@@ -53,8 +54,20 @@ def test_registry_metadata():
         assert field.nullable is (selector == "age")
         assert field.sortable is True
         assert field.filterable is True
+        assert field.summary_types == (
+            frozenset({"count", "sum", "avg", "min", "max"})
+            if selector in {"id", "age"}
+            else frozenset({"count"})
+        )
     with pytest.raises(FrozenInstanceError):
         CUSTOMER_GRID_FIELDS["age"].nullable = False
+
+
+def test_summary_capabilities_default_deny_and_are_immutable():
+    field = GridField(CUSTOMER_GRID_FIELDS["age"].expression, GridValueType.INTEGER)
+    assert field.summary_types == frozenset()
+    with pytest.raises(FrozenInstanceError):
+        field.summary_types = frozenset({"count"})
 
 
 def test_sort_capability_is_independent_of_filter_capability(monkeypatch):

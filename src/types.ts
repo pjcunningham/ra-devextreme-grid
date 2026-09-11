@@ -1,8 +1,13 @@
 import type { IDataGridOptions } from 'devextreme-react/data-grid';
 import type { IPaginationOptions } from 'devextreme-react/pagination';
 import type { FilterRow as DxGridFilterRow } from 'devextreme/common/grids';
-import type { Selection as DxGridSelection } from 'devextreme/ui/data_grid';
+import type {
+  Selection as DxGridSelection,
+  Summary as DxGridSummary,
+  SummaryTotalItem as DxGridSummaryTotalItem,
+} from 'devextreme/ui/data_grid';
 import type { RaRecord } from 'react-admin';
+import type { GetGridSummaryType } from './remote/types';
 
 /**
  * Safe presentation options for DataGrid selection in managed mode.
@@ -109,10 +114,35 @@ export type DatagridDXPaginationProps = Omit<
   | 'onPageSizeChange'
 >;
 
+type DatagridDXRemoteSummaryTotalItem = Omit<
+  DxGridSummaryTotalItem,
+  'summaryType' | 'skipEmptyValues'
+> & {
+  skipEmptyValues?: true;
+} & (
+    { summaryType: 'count' } | { summaryType: Exclude<GetGridSummaryType, 'count'>; column: string }
+  );
+
+/**
+ * Native total-summary presentation with supported remote aggregate semantics.
+ * Custom calculation, group summaries, and editing recalculation are not exposed.
+ */
+export type DatagridDXRemoteSummaryOptions = Omit<
+  DxGridSummary,
+  | 'calculateCustomSummary'
+  | 'groupItems'
+  | 'recalculateWhileEditing'
+  | 'totalItems'
+  | 'skipEmptyValues'
+> & {
+  totalItems?: DatagridDXRemoteSummaryTotalItem[];
+  skipEmptyValues?: true;
+};
+
 /**
  * Read-only remote grid options. DevExtreme owns native query state; do not use
  * inside List/ListBase or with DatagridDXPagination. Nested native components
- * and imperative APIs must also respect the documented Phase 5 limitations.
+ * and imperative APIs must also respect the documented remote-operation limitations.
  */
 export type DatagridDXRemoteProps<RecordType extends RaRecord = RaRecord> = Omit<
   IDataGridOptions<RecordType, RecordType['id']>,
@@ -160,4 +190,5 @@ export type DatagridDXRemoteProps<RecordType extends RaRecord = RaRecord> = Omit
 > & {
   resource?: string;
   paging?: Omit<NonNullable<IDataGridOptions<RecordType, RecordType['id']>['paging']>, 'enabled'>;
+  summary?: DatagridDXRemoteSummaryOptions;
 };

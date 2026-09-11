@@ -4,6 +4,7 @@ from typing import Any
 
 from sqlalchemy.sql.elements import ColumnElement
 
+from app.grid.models import GridSummaryType
 from app.models import Customer
 
 
@@ -25,17 +26,42 @@ class GridField:
     sortable: bool = True
     filterable: bool = True
     nullable: bool = False
+    summary_types: frozenset[GridSummaryType] = frozenset()
 
+
+COUNT_SUMMARY_TYPES: frozenset[GridSummaryType] = frozenset({"count"})
+NUMERIC_SUMMARY_TYPES: frozenset[GridSummaryType] = frozenset(
+    {"count", "sum", "avg", "min", "max"}
+)
 
 CUSTOMER_GRID_FIELDS: dict[str, GridField] = {
-    "id": GridField(Customer.id, GridValueType.INTEGER),
-    "name": GridField(Customer.name, GridValueType.STRING),
-    "company": GridField(Customer.company, GridValueType.STRING),
-    "city": GridField(Customer.city, GridValueType.STRING),
-    "country": GridField(Customer.country, GridValueType.STRING),
-    "active": GridField(Customer.active, GridValueType.BOOLEAN),
-    "age": GridField(Customer.age, GridValueType.INTEGER, nullable=True),
-    "joined_on": GridField(Customer.joined_on, GridValueType.DATE),
+    "id": GridField(
+        Customer.id, GridValueType.INTEGER, summary_types=NUMERIC_SUMMARY_TYPES
+    ),
+    "name": GridField(
+        Customer.name, GridValueType.STRING, summary_types=COUNT_SUMMARY_TYPES
+    ),
+    "company": GridField(
+        Customer.company, GridValueType.STRING, summary_types=COUNT_SUMMARY_TYPES
+    ),
+    "city": GridField(
+        Customer.city, GridValueType.STRING, summary_types=COUNT_SUMMARY_TYPES
+    ),
+    "country": GridField(
+        Customer.country, GridValueType.STRING, summary_types=COUNT_SUMMARY_TYPES
+    ),
+    "active": GridField(
+        Customer.active, GridValueType.BOOLEAN, summary_types=COUNT_SUMMARY_TYPES
+    ),
+    "age": GridField(
+        Customer.age,
+        GridValueType.INTEGER,
+        nullable=True,
+        summary_types=NUMERIC_SUMMARY_TYPES,
+    ),
+    "joined_on": GridField(
+        Customer.joined_on, GridValueType.DATE, summary_types=COUNT_SUMMARY_TYPES
+    ),
 }
 
 

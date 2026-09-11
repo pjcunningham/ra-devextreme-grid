@@ -1,7 +1,16 @@
-import { forwardRef, useMemo, type ForwardedRef, type ReactElement } from 'react';
+import {
+  forwardRef,
+  useMemo,
+  useRef,
+  useCallback,
+  type ForwardedRef,
+  type ReactElement,
+} from 'react';
 import DataGrid, { type DataGridRef } from 'devextreme-react/data-grid';
+import type dxDataGrid from 'devextreme/ui/data_grid';
 import { useDataProvider, useResourceContext, type RaRecord } from 'react-admin';
 import { createGridStore } from './remote/createGridStore';
+import { validateSummaryOptions } from './remote/summaryOptions';
 import type { DatagridDXDataProvider } from './remote/types';
 import type { DatagridDXRemoteProps } from './types';
 
@@ -10,7 +19,7 @@ const remoteOperations = {
   sorting: true,
   filtering: true,
   grouping: false,
-  summary: false,
+  summary: true,
   groupPaging: false,
 };
 const selection = { mode: 'none' } as const;
@@ -23,12 +32,52 @@ const stateStoring = { enabled: false };
 export const DatagridDXRemote = forwardRef(function DatagridDXRemote<
   RecordType extends RaRecord = RaRecord,
 >(
-  { resource: resourceProp, paging, sorting, ...restProps }: DatagridDXRemoteProps<RecordType>,
+  {
+    resource: resourceProp,
+    paging,
+    sorting,
+    onInitialized,
+    onOptionChanged,
+    onDisposing,
+    ...restProps
+  }: DatagridDXRemoteProps<RecordType>,
   ref: ForwardedRef<DataGridRef<RecordType, RecordType['id']>>
 ) {
   const contextResource = useResourceContext({ resource: resourceProp });
   const resource = resourceProp === '' ? '' : contextResource;
   const dataProvider = useDataProvider<DatagridDXDataProvider>();
+  const instance = useRef<dxDataGrid<RecordType, RecordType['id']> | null>(null);
+  const validateBeforeLoad = useCallback(() => {
+    validateSummaryOptions(instance.current?.option('summary'));
+  }, []);
+  const handleInitialized = useCallback<
+    NonNullable<DatagridDXRemoteProps<RecordType>['onInitialized']>
+  >(
+    (event) => {
+      instance.current = event.component ?? null;
+      validateBeforeLoad();
+      onInitialized?.(event);
+    },
+    [onInitialized, validateBeforeLoad]
+  );
+  const handleOptionChanged = useCallback<
+    NonNullable<DatagridDXRemoteProps<RecordType>['onOptionChanged']>
+  >(
+    (event) => {
+      if (event.name === 'summary') validateSummaryOptions(event.component.option('summary'));
+      onOptionChanged?.(event);
+    },
+    [onOptionChanged]
+  );
+  const handleDisposing = useCallback<
+    NonNullable<DatagridDXRemoteProps<RecordType>['onDisposing']>
+  >(
+    (event) => {
+      instance.current = null;
+      onDisposing?.(event);
+    },
+    [onDisposing]
+  );
   const { pageIndex, pageSize } = paging ?? {};
   const pagingOptions = useMemo(
     () => ({
@@ -45,13 +94,16 @@ export const DatagridDXRemote = forwardRef(function DatagridDXRemote<
         'DatagridDXRemote requires a nonempty resource prop or React-Admin ResourceContext.'
       );
     }
-    return createGridStore<RecordType>({ resource, dataProvider });
-  }, [resource, dataProvider]);
+    return createGridStore<RecordType>({ resource, dataProvider, validateBeforeLoad });
+  }, [resource, dataProvider, validateBeforeLoad]);
 
   return (
     <DataGrid<RecordType, RecordType['id']>
       {...restProps}
       ref={ref}
+      onInitialized={handleInitialized}
+      onOptionChanged={handleOptionChanged}
+      onDisposing={handleDisposing}
       dataSource={store}
       defaultPaging={pagingOptions}
       sorting={sortingOptions}

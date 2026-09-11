@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { LoadOptions } from 'devextreme/common/data';
 import { renderHook } from '@testing-library/react';
 import { createElement, type PropsWithChildren } from 'react';
 import { AdminContext, testDataProvider, useDataProvider } from 'react-admin';
@@ -103,4 +104,74 @@ describe('processed grid store', () => {
       ).rejects.toThrow(/requires.*getGrid/);
     }
   );
+
+  it('forwards positional JSON scalars unchanged with independent count', async () => {
+    const summary = [0, null, -3, 2.75, '2026-01-01', true, false];
+    const data = [{ id: 2 }];
+    const totalSummary = summary.map(() => ({ summaryType: 'count' as const }));
+    for (const requireTotalCount of [undefined, false, true]) {
+      const result = { data, summary, ...(requireTotalCount ? { totalCount: 10 } : {}) };
+      const { store, getGrid } = makeStore(vi.fn().mockResolvedValue(result));
+      const loaded = await store.load({
+        totalSummary,
+        requireTotalCount,
+      } as unknown as LoadOptions);
+      expect(loaded).toEqual(result);
+      expect(loaded).toHaveProperty('summary', summary);
+      expect(getGrid).toHaveBeenCalledWith('customers', {
+        loadOptions: {
+          totalSummary,
+          ...(requireTotalCount !== undefined ? { requireTotalCount } : {}),
+        },
+      });
+    }
+  });
+
+  it.each(
+    [
+      undefined,
+      null,
+      {},
+      '1',
+      [],
+      [1, 2],
+      new Array(1),
+      [undefined],
+      [NaN],
+      [Infinity],
+      [-Infinity],
+      [() => 1],
+      [Symbol('x')],
+      [BigInt(1)],
+      [new Date()],
+      [{}],
+      [[]],
+    ].map((summary) => [summary])
+  )('rejects missing, mismatched or unsafe positional summary %#', async (summary) => {
+    const { store } = makeStore(vi.fn().mockResolvedValue({ data: [], summary }));
+    await expect(
+      Promise.resolve(
+        store.load({ totalSummary: [{ summaryType: 'count' }] } as unknown as LoadOptions)
+      )
+    ).rejects.toThrow(/summary/);
+  });
+
+  it.each([null, [], [1], {}])('rejects unsolicited summary %j', async (summary) => {
+    const { store } = makeStore(vi.fn().mockResolvedValue({ data: [], summary }));
+    await expect(Promise.resolve(store.load({}))).rejects.toThrow(/unsolicited summary/);
+  });
+
+  it('omits undefined optional summary and validates before calling the provider', async () => {
+    const { store, getGrid } = makeStore(
+      vi.fn().mockResolvedValue({ data: [], summary: undefined })
+    );
+    expect(await store.load({ totalSummary: [] })).toEqual({ data: [] });
+    getGrid.mockClear();
+    await expect(
+      Promise.resolve(
+        store.load({ totalSummary: { summaryType: 'custom' } } as unknown as LoadOptions)
+      )
+    ).rejects.toThrow(/totalSummary/);
+    expect(getGrid).not.toHaveBeenCalled();
+  });
 });

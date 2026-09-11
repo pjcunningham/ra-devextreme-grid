@@ -1,6 +1,6 @@
 from collections.abc import AsyncGenerator, Generator, Sequence
 from contextlib import asynccontextmanager
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -77,12 +77,15 @@ def create_app(
         request: GridRequest,
         session: Annotated[Session, Depends(get_session)],
     ) -> GridResponse:
-        records, total_count = execute_customer_grid_query(
+        records, total_count, summary = execute_customer_grid_query(
             session=session, load_options=request.load_options
         )
+        response_options: dict[str, Any] = {}
         if total_count is not None:
-            return GridResponse(data=records, total_count=total_count)
-        return GridResponse(data=records)
+            response_options["total_count"] = total_count
+        if summary is not None:
+            response_options["summary"] = summary
+        return GridResponse(data=records, **response_options)
 
     return app
 

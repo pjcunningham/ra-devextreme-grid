@@ -1,16 +1,20 @@
+from pydantic import JsonValue
+from sqlalchemy import select as sqlalchemy_select
 from sqlmodel import Session, func, select
 
 from app.grid.fields import CUSTOMER_GRID_FIELDS, get_customer_sort_column
 from app.grid.filtering import compile_filter_expression
 from app.grid.models import GridLoadOptions
+from app.grid.summaries import build_total_summary_expressions
 from app.models import Customer
 
 
 def execute_customer_grid_query(
     session: Session, load_options: GridLoadOptions
-) -> tuple[list[Customer], int | None]:
-    """Filter, conditionally count, sort and page customers entirely in SQL."""
-    # Validate all client-controlled structure before executing either statement.
+) -> tuple[list[Customer], int | None, list[JsonValue] | None]:
+    """Filter, optionally count and summarize, sort and page customers in SQL."""
+    # Validate all client-controlled structure before executing any statements.
+    filter_clause = compile_filter_expression(load_options.filter, CUSTOMER_GRID_FIELDS)
     order_by_clauses = []
     has_id_sort = False
 
@@ -28,7 +32,9 @@ def execute_customer_grid_query(
     if not has_id_sort:
         order_by_clauses.append(Customer.id.asc())
 
-    filter_clause = compile_filter_expression(load_options.filter, CUSTOMER_GRID_FIELDS)
+    summary_expressions = build_total_summary_expressions(
+        load_options.total_summary or [], CUSTOMER_GRID_FIELDS
+    )
     statement = select(Customer)
     count_statement = select(func.count(Customer.id))
     if filter_clause is not None:
@@ -39,6 +45,17 @@ def execute_customer_grid_query(
     if load_options.require_total_count is True:
         total_count = session.exec(count_statement).one()
 
+    summary: list[JsonValue] | None = None
+    if summary_expressions:
+        summary_statement = sqlalchemy_select(*summary_expressions).select_from(
+            Customer
+        )
+        if filter_clause is not None:
+            summary_statement = summary_statement.where(filter_clause)
+        # Preserve a row even for one descriptor instead of scalarizing the result.
+        row = session.execute(summary_statement).one()
+        summary = list(row)
+
     # Filter the complete set before deterministic ordering and paging.
     statement = (
         statement.order_by(*order_by_clauses)
@@ -47,4 +64,4 @@ def execute_customer_grid_query(
     )
 
     records = list(session.exec(statement).all())
-    return records, total_count
+    return records, total_count, summary

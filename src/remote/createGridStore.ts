@@ -10,14 +10,17 @@ const missingMethod =
 export function createGridStore<RecordType extends RaRecord>({
   resource,
   dataProvider,
+  validateBeforeLoad,
 }: {
   resource: string;
   dataProvider: DatagridDXDataProvider;
+  validateBeforeLoad?: () => void;
 }): CustomStore<RecordType, RecordType['id']> {
   return new CustomStore<RecordType, RecordType['id']>({
     key: 'id',
     loadMode: 'processed',
     load: async (options) => {
+      validateBeforeLoad?.();
       const loadOptions = normalizeLoadOptions(options);
       // React-Admin's get trap returns a function even for absent methods.
       if (!('getGrid' in dataProvider) || typeof dataProvider.getGrid !== 'function') {
@@ -37,7 +40,7 @@ export function createGridStore<RecordType extends RaRecord>({
       if (!result || typeof result !== 'object' || !Array.isArray(result.data)) {
         throw new Error('DatagridDXRemote getGrid must return an object with a data array.');
       }
-      const { totalCount } = result;
+      const { totalCount, summary } = result;
       if (loadOptions.requireTotalCount || totalCount !== undefined) {
         if (typeof totalCount !== 'number' || !Number.isFinite(totalCount) || totalCount < 0) {
           throw new Error(
@@ -47,6 +50,26 @@ export function createGridStore<RecordType extends RaRecord>({
       }
       const converted: LoadResultObject<RecordType> = { data: result.data };
       if (totalCount !== undefined) converted.totalCount = totalCount;
+      if (loadOptions.totalSummary?.length) {
+        if (!Array.isArray(summary) || summary.length !== loadOptions.totalSummary.length) {
+          throw new Error(
+            'DatagridDXRemote getGrid summary must be an array matching totalSummary length.'
+          );
+        }
+        for (const value of summary) {
+          if (
+            value !== null &&
+            typeof value !== 'string' &&
+            typeof value !== 'boolean' &&
+            !(typeof value === 'number' && Number.isFinite(value))
+          ) {
+            throw new Error('DatagridDXRemote getGrid summary values must be JSON-safe scalars.');
+          }
+        }
+        converted.summary = summary;
+      } else if (summary !== undefined) {
+        throw new Error('DatagridDXRemote getGrid returned an unsolicited summary.');
+      }
       return converted;
     },
   });

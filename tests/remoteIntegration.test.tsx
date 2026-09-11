@@ -271,7 +271,7 @@ describe('DatagridDXRemote native query integration', () => {
   it.each<[string, LoadOptions<Customer>]>([
     ['group', { group: [{ selector: 'country', isExpanded: false }] }],
     ['groupSummary', { groupSummary: [{ selector: 'id', summaryType: 'count' }] }],
-    ['totalSummary', { totalSummary: [{ selector: 'id', summaryType: 'count' }] }],
+    ['totalSummary', { totalSummary: [{ selector: '', summaryType: 'count' }] }],
     ['requireGroupCount', { requireGroupCount: true }],
   ])(
     'rejects %s through the mounted grid store before calling the provider',

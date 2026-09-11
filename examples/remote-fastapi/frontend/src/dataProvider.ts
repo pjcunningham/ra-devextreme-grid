@@ -87,6 +87,7 @@ export const dataProvider: DatagridDXDataProvider = {
     return {
       data: result.data,
       totalCount: result.totalCount,
+      ...(result.summary !== undefined ? { summary: result.summary } : {}),
     };
   },
 };
