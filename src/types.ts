@@ -5,6 +5,7 @@ import type {
   Selection as DxGridSelection,
   Summary as DxGridSummary,
   SummaryTotalItem as DxGridSummaryTotalItem,
+  SummaryGroupItem as DxGridSummaryGroupItem,
 } from 'devextreme/ui/data_grid';
 import type { RaRecord } from 'react-admin';
 import type { GetGridSummaryType } from './remote/types';
@@ -123,9 +124,18 @@ type DatagridDXRemoteSummaryTotalItem = Omit<
     { summaryType: 'count' } | { summaryType: Exclude<GetGridSummaryType, 'count'>; column: string }
   );
 
+export type DatagridDXRemoteSummaryGroupItem = Omit<
+  DxGridSummaryGroupItem,
+  'summaryType' | 'skipEmptyValues'
+> & {
+  skipEmptyValues?: true;
+} & (
+    { summaryType: 'count' } | { summaryType: Exclude<GetGridSummaryType, 'count'>; column: string }
+  );
+
 /**
- * Native total-summary presentation with supported remote aggregate semantics.
- * Custom calculation, group summaries, and editing recalculation are not exposed.
+ * Native total/group-summary presentation with supported remote aggregate semantics.
+ * Custom calculation and editing recalculation are not exposed.
  */
 export type DatagridDXRemoteSummaryOptions = Omit<
   DxGridSummary,
@@ -136,7 +146,16 @@ export type DatagridDXRemoteSummaryOptions = Omit<
   | 'skipEmptyValues'
 > & {
   totalItems?: DatagridDXRemoteSummaryTotalItem[];
+  groupItems?: DatagridDXRemoteSummaryGroupItem[];
   skipEmptyValues?: true;
+};
+
+/** Complete expanded server groups only; loaded groups may still collapse locally. */
+export type DatagridDXRemoteGroupingOptions = Omit<
+  NonNullable<IDataGridOptions['grouping']>,
+  'autoExpandAll'
+> & {
+  autoExpandAll?: true;
 };
 
 /**
@@ -153,9 +172,11 @@ export type DatagridDXRemoteProps<RecordType extends RaRecord = RaRecord> = Omit
   | 'defaultPaging'
   | 'stateStoring'
   | 'grouping'
-  | 'groupPanel'
   | 'defaultGroupPanel'
   | 'onGroupPanelChange'
+  | 'sortByGroupSummaryInfo'
+  | 'defaultSortByGroupSummaryInfo'
+  | 'onSortByGroupSummaryInfoChange'
   | 'summary'
   | 'headerFilter'
   | 'filterBuilder'
@@ -190,5 +211,6 @@ export type DatagridDXRemoteProps<RecordType extends RaRecord = RaRecord> = Omit
 > & {
   resource?: string;
   paging?: Omit<NonNullable<IDataGridOptions<RecordType, RecordType['id']>['paging']>, 'enabled'>;
+  grouping?: DatagridDXRemoteGroupingOptions;
   summary?: DatagridDXRemoteSummaryOptions;
 };

@@ -2,6 +2,7 @@ import CustomStore from 'devextreme/data/custom_store';
 import type { LoadResultObject } from 'devextreme/common/data';
 import type { RaRecord } from 'react-admin';
 import { normalizeLoadOptions } from './loadOptions';
+import { validateGridData, validateSummaryResult } from './groupResults';
 import type { DatagridDXDataProvider } from './types';
 
 const missingMethod =
@@ -40,7 +41,7 @@ export function createGridStore<RecordType extends RaRecord>({
       if (!result || typeof result !== 'object' || !Array.isArray(result.data)) {
         throw new Error('DatagridDXRemote getGrid must return an object with a data array.');
       }
-      const { totalCount, summary } = result;
+      const { totalCount, groupCount, summary } = result;
       if (loadOptions.requireTotalCount || totalCount !== undefined) {
         if (typeof totalCount !== 'number' || !Number.isFinite(totalCount) || totalCount < 0) {
           throw new Error(
@@ -48,28 +49,33 @@ export function createGridStore<RecordType extends RaRecord>({
           );
         }
       }
-      const converted: LoadResultObject<RecordType> = { data: result.data };
-      if (totalCount !== undefined) converted.totalCount = totalCount;
-      if (loadOptions.totalSummary?.length) {
-        if (!Array.isArray(summary) || summary.length !== loadOptions.totalSummary.length) {
+      if (loadOptions.requireGroupCount) {
+        if (
+          typeof groupCount !== 'number' ||
+          !Number.isFinite(groupCount) ||
+          !Number.isInteger(groupCount) ||
+          groupCount < 0
+        ) {
           throw new Error(
-            'DatagridDXRemote getGrid summary must be an array matching totalSummary length.'
+            'DatagridDXRemote getGrid groupCount must be a finite non-negative integer when requested.'
           );
         }
-        for (const value of summary) {
-          if (
-            value !== null &&
-            typeof value !== 'string' &&
-            typeof value !== 'boolean' &&
-            !(typeof value === 'number' && Number.isFinite(value))
-          ) {
-            throw new Error('DatagridDXRemote getGrid summary values must be JSON-safe scalars.');
-          }
-        }
-        converted.summary = summary;
-      } else if (summary !== undefined) {
-        throw new Error('DatagridDXRemote getGrid returned an unsolicited summary.');
+      } else if (groupCount !== undefined) {
+        throw new Error('DatagridDXRemote getGrid returned an unsolicited groupCount.');
       }
+      validateSummaryResult(summary, loadOptions.totalSummary?.length, 'summary');
+      validateGridData(
+        result.data,
+        loadOptions.group?.length ?? 0,
+        loadOptions.groupSummary?.length
+      );
+      // Requested-depth validation guarantees homogeneous arrays at every native group level.
+      const converted: LoadResultObject<RecordType> = {
+        data: result.data as LoadResultObject<RecordType>['data'],
+      };
+      if (totalCount !== undefined) converted.totalCount = totalCount;
+      if (groupCount !== undefined) converted.groupCount = groupCount;
+      if (summary !== undefined) converted.summary = summary;
       return converted;
     },
   });

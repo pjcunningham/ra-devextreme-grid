@@ -503,12 +503,17 @@ def test_post_customers_grid_unexpected_exceptions_are_not_422(
 
 
 def test_post_customers_grid_extra_field_rejected_422(client: TestClient):
-    # Extra field in loadOptions
+    # Unsupported group interval
     payload = {
         "loadOptions": {
-            "skip": 0,
-            "take": 10,
-            "group": [{"selector": "country"}],
+            "group": [
+                {
+                    "selector": "country",
+                    "desc": False,
+                    "isExpanded": False,
+                    "groupInterval": "year",
+                }
+            ],
         }
     }
     response = client.post("/api/customers/grid", json=payload)
@@ -588,23 +593,41 @@ def test_openapi_schema(client: TestClient):
         "sort",
         "filter",
         "totalSummary",
+        "group",
+        "groupSummary",
+        "requireGroupCount",
     }
     assert set(components["GridSortDescriptor"]["properties"]) == {"selector", "desc"}
     assert set(components["GridSummaryDescriptor"]["properties"]) == {
         "selector",
         "summaryType",
     }
+    assert set(components["GridGroupDescriptor"]["properties"]) == {
+        "selector",
+        "desc",
+        "isExpanded",
+    }
+    assert set(components["GridGroupDescriptor"]["required"]) == {
+        "selector",
+        "desc",
+        "isExpanded",
+    }
+    assert set(components["GridGroupItem"]["properties"]) == {"key", "items", "summary"}
+    assert set(components["GridGroupItem"]["required"]) == {"key", "items"}
     for name in (
         "GridRequest",
         "GridLoadOptions",
         "GridSortDescriptor",
         "GridSummaryDescriptor",
+        "GridGroupDescriptor",
+        "GridGroupItem",
     ):
         assert components[name]["additionalProperties"] is False
     assert set(components["GridResponse"]["properties"]) == {
         "data",
         "totalCount",
         "summary",
+        "groupCount",
     }
 
 

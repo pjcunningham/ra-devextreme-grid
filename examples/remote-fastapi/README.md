@@ -2,11 +2,13 @@
 
 This **FastAPI + SQLModel**, **UV**-managed reference implementation and dedicated **React-Admin + Vite** frontend demonstrate real end-to-end browser integration for `DatagridDXRemote` / `dataProvider.getGrid()`.
 
-It proves server-side paging, ordered multi-column sorting, secure remote filtering, whole-filtered-dataset total summaries, date-only transport normalization, HTTP 422 error display, and native DevExtreme loading panels over real HTTP connections with development CORS.
+It demonstrates server-side flat paging, ordered multi-column sorting, secure remote filtering, complete remote group trees, group/total summaries, top-level group counts, date-only transport normalization, HTTP 422 error display, and native DevExtreme loading panels over real HTTP connections with development CORS.
 
 See the [Phase 7B report](../../docs/phase-7b-report.md) for complete browser architecture, captured request payloads, and test results.
 
 See the [Phase 8A report](../../docs/phase-8a-report.md) for current summary contracts, executed SQL, browser footer evidence and verification results.
+
+See the [Phase 8B report](../../docs/phase-8b-report.md) for native grouping probes, SQL query-count evidence and the separately registered **Grouped Remote Customers** browser page at `/#/grouped-remote-customers`.
 
 ## Running the Real Browser Example
 
@@ -39,7 +41,7 @@ http://127.0.0.1:5174
 
 ## Running Automated End-to-End Tests
 
-The browser test suite runs 17 end-to-end scenarios under Chromium using Playwright: 13 existing regression scenarios plus four total-summary scenarios.
+The browser test suite has **21 passing scenarios**: all 17 flat/total-summary regressions plus four grouped scenarios. All four grouped scenarios also pass headed Chromium with strict resource diagnostics and no favicon/application-resource 404. See the Phase 8B report for captured evidence and local server-reuse qualifications.
 
 ```sh
 # Install Chromium browser binaries (first-time only)
@@ -98,9 +100,9 @@ DevExtreme native filter (possibly containing Date objects)
   -> { data, totalCount? }
 ```
 
-- Request envelope stays `{ "loadOptions": { ... } }`. Supported properties remain `skip`, `take`, `requireTotalCount`, `sort`, and `filter`.
+- Request envelope stays `{ "loadOptions": { ... } }`. Supported properties include `skip`, `take`, `requireTotalCount`, `sort`, `filter`, `totalSummary`, `group`, `groupSummary`, and `requireGroupCount`.
 - TypeScript remains `filter?: unknown[] | null`; Python remains `filter: list[JsonValue] | None`. The generic adapter preserves native expressions; the backend performs semantic validation. No new endpoint or managed-filter suffix DSL.
-- Omitted/null `skip` defaults to 0; omitted/null `take` defaults to 20. `skip >= 0`, `1 <= take <= 100`; existing paging validation is unchanged.
+- For **flat requests**, omitted/null `skip` defaults to 0; omitted/null `take` defaults to 20. `skip >= 0`, `1 <= take <= 100`; existing paging validation is unchanged. **Grouped requests must omit both paging fields** and retrieve all matching records.
 - Sort descriptors are ordered `{ "selector": "company", "desc": false }` entries. Default order is `id ASC`; append `id ASC` when no explicit ID sort exists. Explicit `id DESC` remains respected.
 - Count runs only for `requireTotalCount: true`. Otherwise `totalCount` is omitted, not null. Record nulls such as `age: null` remain present.
 - Sorting and filtering validate before either query executes. The same compiled expression object is reused for count and data; no in-memory post-page filtering.
@@ -314,10 +316,10 @@ Preserve these operators and exclusive next-day bounds exactly. Do not expand da
 
 ## Limitations and Next Phases
 
-- No `anyof`/`noneof`, direct `between`, Header Filter distinct values, Search Panel, Filter Builder UI enablement, grouping, group summaries, group count, group paging, relationships, editing or state persistence.
+- No `anyof`/`noneof`, direct `between`, Header Filter distinct values, Search Panel, Filter Builder UI enablement, remote group paging, group intervals, sort-by-group-summary, relationships, editing or state persistence.
 - No authentication/RBAC, arbitrary-resource framework or Python package extraction. CORS is local-development only; add deployment/access controls in your application.
 - SQLite Unicode/collation limitations, ordinary nullable inequality differences, conservative nullable NOT, and application-local date semantics are intentional qualifications to native parity.
-- **Phase 7B** browser integration and **Phase 8A** total summaries are implemented. **Phase 8B — Remote Grouping + Group Summaries + Group Count** is next; **Phase 8C — Remote Group Paging** remains deferred.
+- **Phase 7B** browser integration, **Phase 8A** total summaries and **Phase 8B — Remote Grouping + Group Summaries + Group Count** are implemented. **Phase 8C — Remote Group Paging** is next; original Phase 8 is not entirely complete.
 - Large integer sums retain SQLite overflow and JavaScript numeric precision limits. No Decimal/bigint/stringified-number contract is introduced.
 
 ## Remote Total Summaries (Phase 8A)
@@ -343,7 +345,7 @@ import { Summary, TotalItem } from 'devextreme-react/data-grid';
 </DatagridDXRemote>;
 ```
 
-The equivalent safe `summary={{ totalItems: [...] }}` prop is supported. Resolved native options are validated before initial loading, when summary options change, and before subsequent loads. `calculateCustomSummary`, custom/unknown types, group items, editing recalculation, function selectors and `skipEmptyValues={false}` are unsupported; harmless `customizeText`/formatting callbacks remain allowed. Native JSX is broadly typed, so runtime validation is essential.
+The equivalent safe `summary={{ totalItems: [...] }}` prop is supported, as are group items in Phase 8B. Resolved native options are validated before initial loading, when summary options change, and before subsequent loads. `calculateCustomSummary`, custom/unknown types, editing recalculation, function selectors and `skipEmptyValues={false}` are unsupported; harmless `customizeText`/formatting callbacks remain allowed. Native JSX is broadly typed, so runtime validation is essential.
 
 ### Ordered wire contract
 
@@ -403,3 +405,114 @@ WHERE <shared bound filter predicate>
 All descriptors use one aggregate SELECT, not one per item, with explicit Customer FROM even for selector-less count and no ORDER BY/OFFSET/LIMIT. Fixed SQLAlchemy dispatch prevents client-controlled SQL functions; no raw SQL or Python aggregation over records is used. A row-returning execution path preserves a one-element list for a single descriptor.
 
 `totalCount` is independently requested by `requireTotalCount: true`, and remains a separate filtered COUNT query. A count summary is returned only at its requested summary position. Summaries work with `requireTotalCount` false/omitted, and `totalCount` stays absent. Summary plus records executes two SELECTs, or three with `totalCount`; inactive summaries add none. See the report and execution-listener tests for actual SQL evidence.
+
+## Remote Grouping (Phase 8B)
+
+The separate **Grouped Remote Customers** resource uses the same backend endpoint without changing the original flat resource. It initially groups `country → company`, shows the native Group Panel, enables native context-menu grouping, and shows customer count/average age for each group alongside whole-filter total summaries. DevExtreme owns grouping layout; no duplicate React grouping state is maintained.
+
+```tsx
+<DatagridDXRemote<Customer>
+  grouping={{ autoExpandAll: true, contextMenuEnabled: true }}
+  groupPanel={{ visible: true }}
+>
+  <Column dataField="country" groupIndex={0} />
+  <Column dataField="company" groupIndex={1} />
+  <Column dataField="id" />
+  <Column dataField="age" />
+  <Summary>
+    <GroupItem column="id" summaryType="count" displayFormat="Customers: {0}" />
+    <GroupItem column="age" summaryType="avg" displayFormat="Average age: {0}" />
+    <TotalItem column="id" summaryType="count" displayFormat="Total customers: {0}" />
+  </Summary>
+</DatagridDXRemote>
+```
+
+### Native requests and the final expansion flag
+
+Actual normalized one-level DataGrid request:
+
+```json
+{ "loadOptions": { "group": [{ "selector": "country", "desc": false, "isExpanded": false }] } }
+```
+
+Actual two-level shape with summaries (column names depend on the configured example):
+
+```json
+{
+  "loadOptions": {
+    "group": [
+      { "selector": "country", "desc": false, "isExpanded": true },
+      { "selector": "company", "desc": false, "isExpanded": false }
+    ],
+    "groupSummary": [
+      { "selector": "id", "summaryType": "count" },
+      { "selector": "age", "summaryType": "avg" }
+    ],
+    "totalSummary": [{ "selector": "id", "summaryType": "count" }]
+  }
+}
+```
+
+**In DevExtreme 26.1.4, `isExpanded: false` on the final grouping descriptor does not by itself mean that the server should return collapsed groups. Phase 8B preserves this native request shape while always returning complete expanded group contents. `items: null` and lazy group loading remain unsupported until Phase 8C.**
+
+Parents (descriptors 0 through n−2) must have `isExpanded:true`; the final descriptor may be true or false. For example true/false and true/true/false are valid; false/false and true/false/false reject. Both flags and nonblank string selectors are explicit; function selectors, extra keys and `groupInterval` reject. At most four levels are supported, limiting recursion and per-depth SQL work, not the number of returned records.
+
+Native `calculateGroupValue="country"` may select a registered field; executable calculations cannot cross the wire. `autoExpandAll=false` and `column.autoExpandGroup=false` reject through focused resolved-option guards. Summary presentation options such as `showInGroupFooter`, `alignByColumn`, display/value formats and `customizeText` stay native.
+
+### Complete responses and counts
+
+An illustrative two-level response (record fields abbreviated here only):
+
+```json
+{
+  "data": [
+    {
+      "key": "UK",
+      "summary": [2, 25],
+      "items": [
+        {
+          "key": "Acme",
+          "summary": [2, 25],
+          "items": [
+            { "id": 1, "country": "UK", "company": "Acme", "age": 20 },
+            { "id": 2, "country": "UK", "company": "Acme", "age": 30 }
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": [2],
+  "totalCount": 2,
+  "groupCount": 1
+}
+```
+
+The optional counts in that example require explicit `requireTotalCount:true` and `requireGroupCount:true`; normal non-group-paged DataGrid requests do **not** send either. Do not manufacture them in the adapter. Explicit provider/HTTP requests may ask for both: `totalCount` is filtered records, `groupCount` is filtered **top-level groups**, never subgroup count. Count fields are omitted otherwise. A nullable age top-level group contributes one to groupCount, even though COUNT(DISTINCT age) would omit it.
+
+Expanded nodes require no `count` field. Runtime validation follows the requested group depth, requires dense arrays at every level, validates canonical leaf IDs, and rejects `items:null`, malformed nesting/keys and missing or unsolicited positional summaries. Each group's summary has the exact descriptor count and order, including duplicates, at every depth. Requested groupCount must be a finite non-negative integer; unsolicited non-undefined groupCount rejects.
+
+`groupSummary` reuses count/sum/avg/min/max and the 32-item bound. The same registry capabilities and NULL rules apply as for total summaries: all-NULL age groups yield count=row count, sum=0 and avg/min/max=null. Whole-filter top-level `summary` and per-group `summary` are independent. Active group summaries and true group counts without grouping reject.
+
+### Group keys, order and SQL
+
+All eight Customer fields are explicitly groupable in the existing field registry. Unknown selectors (including `password_hash`, `__dict__`, `customer.country`, or SQL-looking strings) reject before SQL. No model traversal or client-controlled SQL is used.
+
+- Strings group by exact values using explicit binary identity: `UK` and `uk` are separate groups. Primary order is lowercase ascending/descending, with a fixed binary ascending tie-break for case-equivalent strings. Native uses encounter-order ties, so **tie order can differ**. SQLite lower is ASCII-limited; no arbitrary Unicode/locale collation parity is claimed. Group identity is case-sensitive even though Phase 7 string filtering is case-insensitive.
+- Integers are numeric keys/order; Booleans remain JSON Booleans (`false` before `true` ascending).
+- SQL DATE keys are chronological **YYYY-MM-DD** strings, not timestamp truncations or interval buckets. Native local Date objects themselves serialize as timestamps; this reference backend explicitly uses date-only wire semantics.
+- NULL forms its own group: first ascending, last descending, and counted in groupCount.
+- Group descriptor order/direction takes precedence over duplicate ordinary sorts. Within final groups, other requested sorts apply, then deterministic ID order. No database-default record ordering is assumed.
+
+The filter compiler runs once. Its identical predicate is reused for the optional row count, total aggregates, top-level group count, per-depth group aggregates and records query. All selectors/summary semantics validate before any statement executes. `query.py` owns execution; `grouping.py` contains pure compilation/tree assembly helpers.
+
+There is one SQL aggregate query per requested grouping depth, not per group: `GROUP BY country`, then `GROUP BY country, company`. Summary rows are indexed by the **entire path tuple**, so repeated child keys under different parents cannot collide. Group count uses a grouped subquery including NULL. One ordered records query retrieves the complete filtered set. Python assembles the tree and attaches SQL summaries; it does not calculate aggregates.
+
+For N levels, both counts plus total/group summaries execute N+4 SELECTs (five for one level, six for two), independent of whether 5 or 100 groups result. Unrequested operations add no statements. See the completion report for instrumented counts.
+
+### Paging, collapse and Phase 8C
+
+With remote grouping enabled and groupPaging=false, normal complete-tree DataGrid loads omit **skip/take and both count flags**. The backend rejects explicitly supplied skip/take on grouped requests, including skip=0; it never pages raw rows before grouping. Flat paging remains unchanged.
+
+Native caching (the grouped example's default) lets pages, page sizes and already-loaded collapse/expand operate locally without another HTTP request. Disabling cache repeats complete-tree loads for these actions; it does not enable group paging. Group headers and continuation headers consume page slots. Avoid page sizes too small for the grouping depth: native probes at two levels/pageSize=2 showed empty/repeated-header irregularities, whereas pageSize=5 and the larger example defaults are covered.
+
+**Fully expanded grouping can transfer many records and consume substantial browser/server memory.** Four-level/32-summary limits do not cap leaf cardinality. Production deployments need access/body/query/time/resource controls. Phase 8C will add deliberate lazy `items:null`, collapsed server groups and remote group-page slices; none is implemented here. Header Filter, group intervals, summary-based group sorting, Search Panel, Filter Builder, editing and state persistence remain out of scope.

@@ -86,8 +86,8 @@ describe('remote native summary options', () => {
   );
 
   it.each(
-    [[{ summaryType: 'count' }], new Array(1), {}, false, '', () => []].map((value) => [value])
-  )('rejects active or malformed groupItems %j', (groupItems) => {
+    [[{ summaryType: 'custom' }], new Array(1), {}, false, '', () => []].map((value) => [value])
+  )('rejects unsupported or malformed groupItems %j', (groupItems) => {
     expect(() => validateSummaryOptions({ groupItems })).toThrow(/groupItems/);
   });
 
@@ -165,5 +165,38 @@ describe('remote native summary options', () => {
     expect(() => validateSummaryOptions({ totalItems: [...totalItems, item] })).toThrow(
       /totalItems.*32/
     );
+  });
+
+  it('supports all built-in group items and native presentation without calling formatters', () => {
+    const customizeText = vi.fn(() => 'Group');
+    expect(
+      validateSummaryOptions({
+        groupItems: [
+          { summaryType: 'count', showInColumn: 'id' },
+          ...['count', 'sum', 'avg', 'min', 'max'].map((summaryType) => ({
+            column: 'age',
+            summaryType,
+            skipEmptyValues: true,
+            showInGroupFooter: true,
+            alignByColumn: true,
+            displayFormat: '{0}',
+            valueFormat: 'fixedPoint',
+            customizeText,
+          })),
+        ],
+      })
+    ).toBeUndefined();
+    expect(customizeText).not.toHaveBeenCalled();
+  });
+
+  it.each(
+    [
+      [{ summaryType: 'avg' }],
+      [{ summaryType: 'count', column: () => 'age' }],
+      [{ summaryType: 'count', skipEmptyValues: false }],
+      Array.from({ length: 33 }, () => ({ summaryType: 'count' })),
+    ].map((groupItems) => [groupItems])
+  )('enforces the same group-item semantic constraints %#', (groupItems) => {
+    expect(() => validateSummaryOptions({ groupItems })).toThrow(/groupItems/);
   });
 });

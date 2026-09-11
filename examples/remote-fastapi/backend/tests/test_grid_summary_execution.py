@@ -84,7 +84,7 @@ def test_totals_are_independent_of_page_sort_and_requested_count(
     options = GridLoadOptions.model_validate(
         {"totalSummary": SUMMARY, "sort": sort, **count_options, **paging}
     )
-    records, total_count, summary = execute_customer_grid_query(
+    records, total_count, summary, _ = execute_customer_grid_query(
         summary_session, options
     )
     assert len(records) == (5 if options.skip == 0 else 1 if options.skip == 5 else 0)
@@ -112,7 +112,7 @@ def test_totals_are_independent_of_page_sort_and_requested_count(
 def test_filtered_nullable_zero_duplicate_all_null_and_empty_semantics(
     summary_session, expression, expected
 ):
-    records, total_count, summary = execute_customer_grid_query(
+    records, total_count, summary, _ = execute_customer_grid_query(
         summary_session,
         GridLoadOptions.model_validate(
             {
@@ -155,7 +155,7 @@ def test_filtered_nullable_zero_duplicate_all_null_and_empty_semantics(
 def test_single_descriptor_explicit_from_and_duplicate_out_of_order_positions(
     summary_session, items, expected
 ):
-    _, total_count, summary = execute_customer_grid_query(
+    _, total_count, summary, _ = execute_customer_grid_query(
         summary_session, GridLoadOptions.model_validate({"totalSummary": items})
     )
     assert total_count is None
@@ -208,7 +208,7 @@ def test_filter_compiled_once_and_identical_predicate_reused_in_three_executed_q
         wraps=filtering.compile_filter_expression,
     ) as compiler:
         with capture_selects(summary_session.get_bind()) as (statements, executed):
-            records, total_count, summary = execute_customer_grid_query(
+            records, total_count, summary, _ = execute_customer_grid_query(
                 summary_session,
                 GridLoadOptions.model_validate(
                     {
@@ -275,7 +275,7 @@ def test_internal_malformed_summary_executes_no_queries(summary_session):
 
 
 def test_seed_uk_summaries_describe_ten_rows_not_five(session):
-    records, count, summary = execute_customer_grid_query(
+    records, count, summary, _ = execute_customer_grid_query(
         session,
         GridLoadOptions.model_validate(
             {

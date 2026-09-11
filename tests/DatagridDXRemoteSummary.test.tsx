@@ -103,7 +103,7 @@ describe('remote native Summary configuration', () => {
         sorting: true,
         filtering: true,
         summary: true,
-        grouping: false,
+        grouping: true,
         groupPaging: false,
       });
       expect(grid().option('groupPanel.visible')).toBe(false);
@@ -125,7 +125,7 @@ describe('remote native Summary configuration', () => {
   it.each([
     { calculateCustomSummary: () => undefined },
     { totalItems: [{ column: 'age', summaryType: 'custom' }] },
-    { groupItems: [{ column: 'id', summaryType: 'count' }] },
+    { groupItems: [{ column: 'id', summaryType: 'custom' }] },
     { skipEmptyValues: false },
     { totalItems: [{ column: 'age', summaryType: 'avg', skipEmptyValues: false }] },
     { totalItems: Array.from({ length: 33 }, () => ({ column: 'id', summaryType: 'count' })) },
@@ -184,7 +184,7 @@ describe('remote native Summary configuration', () => {
 
   it.each([
     ['summary.totalItems[0].summaryType', 'custom'],
-    ['summary.groupItems', [{ column: 'id', summaryType: 'count' }]],
+    ['summary.groupItems', [{ column: 'id', summaryType: 'custom' }]],
     ['summary.skipEmptyValues', false],
   ])('blocks later semantic changes at %s', async (path, value) => {
     const { grid, getGrid } = harness({

@@ -27,6 +27,7 @@ class GridField:
     filterable: bool = True
     nullable: bool = False
     summary_types: frozenset[GridSummaryType] = frozenset()
+    groupable: bool = False
 
 
 COUNT_SUMMARY_TYPES: frozenset[GridSummaryType] = frozenset({"count"})
@@ -36,31 +37,53 @@ NUMERIC_SUMMARY_TYPES: frozenset[GridSummaryType] = frozenset(
 
 CUSTOMER_GRID_FIELDS: dict[str, GridField] = {
     "id": GridField(
-        Customer.id, GridValueType.INTEGER, summary_types=NUMERIC_SUMMARY_TYPES
+        Customer.id,
+        GridValueType.INTEGER,
+        summary_types=NUMERIC_SUMMARY_TYPES,
+        groupable=True,
     ),
     "name": GridField(
-        Customer.name, GridValueType.STRING, summary_types=COUNT_SUMMARY_TYPES
+        Customer.name,
+        GridValueType.STRING,
+        summary_types=COUNT_SUMMARY_TYPES,
+        groupable=True,
     ),
     "company": GridField(
-        Customer.company, GridValueType.STRING, summary_types=COUNT_SUMMARY_TYPES
+        Customer.company,
+        GridValueType.STRING,
+        summary_types=COUNT_SUMMARY_TYPES,
+        groupable=True,
     ),
     "city": GridField(
-        Customer.city, GridValueType.STRING, summary_types=COUNT_SUMMARY_TYPES
+        Customer.city,
+        GridValueType.STRING,
+        summary_types=COUNT_SUMMARY_TYPES,
+        groupable=True,
     ),
     "country": GridField(
-        Customer.country, GridValueType.STRING, summary_types=COUNT_SUMMARY_TYPES
+        Customer.country,
+        GridValueType.STRING,
+        summary_types=COUNT_SUMMARY_TYPES,
+        groupable=True,
     ),
     "active": GridField(
-        Customer.active, GridValueType.BOOLEAN, summary_types=COUNT_SUMMARY_TYPES
+        Customer.active,
+        GridValueType.BOOLEAN,
+        summary_types=COUNT_SUMMARY_TYPES,
+        groupable=True,
     ),
     "age": GridField(
         Customer.age,
         GridValueType.INTEGER,
         nullable=True,
         summary_types=NUMERIC_SUMMARY_TYPES,
+        groupable=True,
     ),
     "joined_on": GridField(
-        Customer.joined_on, GridValueType.DATE, summary_types=COUNT_SUMMARY_TYPES
+        Customer.joined_on,
+        GridValueType.DATE,
+        summary_types=COUNT_SUMMARY_TYPES,
+        groupable=True,
     ),
 }
 

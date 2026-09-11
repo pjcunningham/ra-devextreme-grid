@@ -5,9 +5,11 @@
 [![CI](https://github.com/pjcunningham/ra-devextreme-grid/actions/workflows/ci.yml/badge.svg)](https://github.com/pjcunningham/ra-devextreme-grid/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Status: Early Development (Phase 7B Implemented)
+## Status: Early Development (Phase 8B Implemented)
 
 `ra-devextreme-grid` is currently under active early development and is **not yet production-ready**.
+
+**Phase 8B: Remote Grouping + Group Summaries + Group Count** adds complete expanded group trees, safe native grouping UI, SQL group summaries and null-inclusive top-level counts. See the [Phase 8B report](./docs/phase-8b-report.md). **Phase 8C — Remote Group Paging** is next; the original Phase 8 is not entirely complete.
 
 **Phase 7B: Browser-to-FastAPI End-to-End Example** proves the full browser-to-database integration using a dedicated React-Admin frontend (`examples/remote-fastapi/frontend`), development CORS on the reference backend, a real HTTP `getGrid()` DataProvider with date-only transport normalization, and a complete Playwright Chromium E2E suite executed in the `Asia/Tokyo` timezone. See the [FastAPI Example & Browser Demo](./examples/remote-fastapi/README.md) and [Phase 7B report](./docs/phase-7b-report.md).
 
@@ -115,6 +117,18 @@ export type GetGridSummaryDescriptor =
   | { summaryType: Exclude<GetGridSummaryType, 'count'>; selector: string };
 export type GetGridSummaryValue = string | number | boolean | null;
 
+export interface GetGridGroupDescriptor {
+  selector: string;
+  desc: boolean;
+  isExpanded: boolean;
+}
+export type GetGridGroupKey = string | number | boolean | null;
+export interface GetGridGroupItem<RecordType extends RaRecord = RaRecord> {
+  key: GetGridGroupKey;
+  items: Array<RecordType | GetGridGroupItem<RecordType>>;
+  summary?: GetGridSummaryValue[];
+}
+
 export interface GetGridLoadOptions {
   skip?: number;
   take?: number;
@@ -122,6 +136,9 @@ export interface GetGridLoadOptions {
   sort?: GetGridSortDescriptor[];
   filter?: unknown[] | null;
   totalSummary?: GetGridSummaryDescriptor[];
+  group?: GetGridGroupDescriptor[];
+  groupSummary?: GetGridSummaryDescriptor[];
+  requireGroupCount?: boolean;
 }
 
 export interface GetGridParams {
@@ -129,8 +146,9 @@ export interface GetGridParams {
 }
 
 export interface GetGridResult<RecordType extends RaRecord = RaRecord> {
-  data: RecordType[];
+  data: RecordType[] | GetGridGroupItem<RecordType>[];
   totalCount?: number;
+  groupCount?: number;
   summary?: GetGridSummaryValue[];
 }
 
@@ -163,22 +181,29 @@ function withGrid(
 }
 
 // const dataProvider = withGrid(baseDataProvider, yourApplicationGridService);
-// The service returns { data, totalCount?, summary? }, not React-Admin { data, total }.
+// The service returns { data, totalCount?, groupCount?, summary? }, not React-Admin { data, total }.
 ```
 
 The library defines **no HTTP protocol or endpoint**. Your provider decides between POST JSON, query parameters, GraphQL, RPC, or an in-memory service, and handles authentication headers and resource mapping. Date/time-zone serialization, field/operator authorization, payload limits, and backend security are application responsibilities. The small adapter validator is not a security boundary or a promise of JSON serializability.
 
 ### Native query and result rules
 
-- Only `skip`, `take`, `requireTotalCount`, `sort`, `filter`, and `totalSummary` are forwarded. Paging offsets remain native; meaningful zero/false values are retained. Offsets/sizes must be finite non-negative integers.
+- Supported fields are `skip`, `take`, `requireTotalCount`, `sort`, `filter`, `totalSummary`, `group`, `groupSummary`, and `requireGroupCount`. Flat offsets/sizes must be finite non-negative integers; grouped requests must omit `skip`/`take` and return complete contents.
 - Paging is always enabled. The native default page size is **20**, and page indexes are zero-based. The example uses 10. `paging.enabled` and the loose generated `defaultPaging` alias are omitted; native pager options and `paging.pageIndex` / `pageSize` remain available. DevExtreme handles page changes/resets and may reuse cached rows or request a partial page.
 - Sort strings, descriptor objects, and arrays normalize to ordered `{ selector: string, desc: boolean }[]`; omitted `desc` becomes false. Multiple sorting is the default; native safe sorting customization remains available.
 - Filter Row is opt-in. Native `filterValue`, `defaultFilterValue`, and change callbacks remain native, with no React-Admin synchronization.
 - Executable functions anywhere in supported query input, invalid sort selectors/directions, and malformed filter containers reject the load. Function traversal is cycle-safe and does not execute query functions.
-- Active `group`, `groupSummary`, or `requireGroupCount: true` reject before the provider runs. Null/empty advanced descriptors and false group-count defaults are inactive. Active projection/search and unrelated semantic query operations (such as `select` or `expand`) also reject; bookkeeping like `userData` and inactive DataSource search defaults are ignored.
+- Grouping supports at most four explicit string-selector descriptors. `desc` and `isExpanded` are required Booleans. All parent levels require `isExpanded: true`; **the final level may be false**, matching actual DevExtreme 26.1.4 output. Both final values require complete arrays. Active group summaries and true group-count requests require grouping. Functions, intervals, parent false flags and grouped paging reject. Active projection/search and unrelated semantic operations (such as `select` or `expand`) reject; bookkeeping and inactive search defaults are ignored.
 - `totalSummary` accepts native explicit descriptor objects singly or in arrays, normalized to an ordered array of at most 32 items. Duplicates are preserved; count may omit its selector. Requested `summary` must have exactly one JSON-safe scalar (finite number, string, boolean or null) per descriptor. Sparse/unsafe values and unsolicited summaries reject. Cached page loads may omit descriptors while retaining the footer.
-- Native `summary` props use exported `DatagridDXRemoteSummaryOptions`; native `<Summary><TotalItem /></Summary>` children also work. Only built-in server summary types and default `skipEmptyValues` semantics are supported. Resolved options are guarded at initialization, summary changes and before loads: custom calculation, group summaries, and `skipEmptyValues={false}` reject. Formatting and `customizeText` remain client-side. See the [FastAPI summary example](./examples/remote-fastapi/README.md#remote-total-summaries-phase-8a) for complete filtered-set SQL semantics.
+- Native `summary` props use exported `DatagridDXRemoteSummaryOptions`; native `<Summary><TotalItem /><GroupItem /></Summary>` children also work. Group summaries reuse the same grammar, limit and positional scalar validation at **every group level**. Only built-in types and default `skipEmptyValues` semantics are supported. Custom calculation and `skipEmptyValues={false}` reject at initialization, option changes and before loads. Formatting and `customizeText` remain client-side.
 - `getGrid` must return an object with a `data` array. `totalCount` is required when requested and must then be numeric, finite, and non-negative. A supplied optional count is validated identically; absent optional counts stay absent. Neither `data.length` nor React-Admin `total` is substituted. Records require stable `id` keys; deep record validation is not performed.
+- Grouped response nesting is validated against the requested depth, with JSON-scalar keys and dense complete arrays; `items: null` rejects. Requested `groupCount` is a finite non-negative integer counting **filtered top-level groups**, whereas `totalCount` counts records. Unsolicited group counts or summaries reject.
+
+### Expanded remote grouping (Phase 8B)
+
+Use native `grouping={{ autoExpandAll: true, contextMenuEnabled: true }}`, `groupPanel={{ visible: true }}`, and `<Column dataField="country" groupIndex={0} />` (add company at index 1 for nesting). The Group Panel is hidden by default. `DatagridDXRemoteGroupingOptions` permits only omitted/true `autoExpandAll`; runtime guards also cover nested configuration and imperative changes.
+
+Normal DevExtreme 26.1.4 complete-group requests omit `skip`, `take`, `requireTotalCount` and `requireGroupCount`. Paging and collapse/expand use the loaded tree locally with native caching. With `cacheEnabled={false}`, they reload the complete tree, not server group slices. Group headers occupy page slots. Fully expanded grouping can transfer many records: no remote group paging, lazy groups or `items: null` until **Phase 8C**. See the [FastAPI grouped example](./examples/remote-fastapi/README.md#remote-grouping-phase-8b) for SQL, NULL/case/date semantics and request/response examples.
 
 The store uses `key: 'id'` and `loadMode: 'processed'`: server pages are not re-filtered/re-sorted locally under the supported configuration. Remote row identity is provided exclusively by the CustomStore `key`; DataGrid `keyExpr` is not configured, eliminating DevExtreme warning `W1011`.
 
@@ -194,11 +219,11 @@ Missing or non-callable `getGrid` produces: `DatagridDXRemote requires the React
 
 ### Ownership and unsupported configuration
 
-The adapter owns `dataSource`, `keyExpr`, `remoteOperations`, paging enablement, and `syncLookupFilterValues: false`. Remote operations explicitly enable paging/sorting/filtering/summary and disable grouping/groupPaging. Native resizing, reordering, fixing, column chooser, adaptive presentation, and `onRowClick` remain available.
+The adapter owns `dataSource`, `keyExpr`, `remoteOperations`, paging enablement, and `syncLookupFilterValues: false`. Remote operations explicitly enable paging/sorting/filtering/grouping/summary and disable groupPaging. Native resizing, reordering, fixing, column chooser, adaptive presentation, and `onRowClick` remain available.
 
-Omitted top-level props include `stateStoring`, `grouping`, `groupPanel`, `headerFilter`, `filterBuilder`, `filterBuilderPopup`, `filterPanel`, `searchPanel`, and `editing`, including relevant editing/group-panel default/change aliases and mutation callbacks. Selection is deliberately disabled: `selection`, selected-key/filter values, default/change aliases, and selection callbacks are omitted. There is no React-Admin remote bulk-selection bridge or managed `rowClick="edit"` convenience API yet.
+Omitted top-level props include `stateStoring`, `sortByGroupSummaryInfo`, `headerFilter`, `filterBuilder`, `filterBuilderPopup`, `filterPanel`, `searchPanel`, and `editing`, including relevant default/change aliases and mutation callbacks. Selection is deliberately disabled: `selection`, selected-key/filter values, default/change aliases, and selection callbacks are omitted. There is no React-Admin remote bulk-selection bridge or managed `rowClick="edit"` convenience API yet.
 
-**Native children and imperative calls are not sandboxed.** Do not configure `Column.groupIndex`, executable remote selectors, nested advanced-filter components, mutations, or persistence. These can bypass top-level omissions. Forcing local grouping can group only the loaded page, which is unsupported and incorrect for remote totals. Summary semantic settings have dedicated runtime guards; this is not a general configuration sandbox. Header Filter distinct-value services, grouping/group summaries/group count/group paging, inline editing, and persistent grid state remain deferred.
+**Native children and imperative calls are not sandboxed.** Grouping/summary invariants have focused runtime guards, not a general configuration sandbox. Do not configure executable selectors, `autoExpandAll=false`, `column.autoExpandGroup=false`, group-summary sorting, advanced-filter components, mutations, or persistence. Header Filter distinct-value services, remote group paging, inline editing, and persistent grid state remain deferred.
 
 ### Dual-mode example
 
@@ -468,8 +493,8 @@ pnpm format
 - **Phase 7 (Completed)**: Secure Remote Filter Compiler ([typed, parameterized SQLAlchemy filtering](./examples/remote-fastapi/README.md) with filtered counts and date-only transport guidance).
 - **Phase 7B (Completed)**: Real browser-to-FastAPI example, date-only transport, development CORS and isolated Playwright database.
 - **Phase 8A (Completed)**: Remote Total Summaries ([report](./docs/phase-8a-report.md)); ordered, filtered whole-dataset native footers.
-- **Phase 8B (Next)**: Remote Grouping + Group Summaries + Group Count.
-- **Phase 8C (Deferred)**: Remote Group Paging.
+- **Phase 8B (Completed)**: Remote Grouping + Group Summaries + Group Count ([report](./docs/phase-8b-report.md)); complete expanded trees, bounded depth and SQL aggregates without N+1.
+- **Phase 8C (Next)**: Remote Group Paging.
 - **Phase 9**: Grid State Persistence (safe separation of React-Admin query state and DevExtreme visual state).
 - **Phase 10**: Inline Grid Editing (React-Admin mutation bridge).
 

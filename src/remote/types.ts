@@ -5,6 +5,20 @@ export interface GetGridSortDescriptor {
   desc: boolean;
 }
 
+export interface GetGridGroupDescriptor {
+  selector: string;
+  desc: boolean;
+  isExpanded: boolean;
+}
+
+export type GetGridGroupKey = string | number | boolean | null;
+
+export interface GetGridGroupItem<RecordType extends RaRecord = RaRecord> {
+  key: GetGridGroupKey;
+  items: Array<RecordType | GetGridGroupItem<RecordType>>;
+  summary?: GetGridSummaryValue[];
+}
+
 export type GetGridSummaryType = 'count' | 'sum' | 'avg' | 'min' | 'max';
 
 export type GetGridSummaryDescriptor =
@@ -17,7 +31,9 @@ export interface GetGridLoadOptions {
   skip?: number;
   take?: number;
   requireTotalCount?: boolean;
+  requireGroupCount?: boolean;
   sort?: GetGridSortDescriptor[];
+  group?: GetGridGroupDescriptor[];
   /**
    * Opaque native DevExtreme expression, not a library operator grammar.
    * Providers must narrow unknown values. Dates are preserved; executable values
@@ -25,6 +41,7 @@ export interface GetGridLoadOptions {
    */
   filter?: unknown[] | null;
   totalSummary?: GetGridSummaryDescriptor[];
+  groupSummary?: GetGridSummaryDescriptor[];
 }
 
 export interface GetGridParams {
@@ -32,8 +49,9 @@ export interface GetGridParams {
 }
 
 export interface GetGridResult<RecordType extends RaRecord = RaRecord> {
-  data: RecordType[];
+  data: RecordType[] | GetGridGroupItem<RecordType>[];
   totalCount?: number;
+  groupCount?: number;
   summary?: GetGridSummaryValue[];
 }
 

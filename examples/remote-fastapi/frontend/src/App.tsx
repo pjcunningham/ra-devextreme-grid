@@ -3,6 +3,7 @@ import { Admin, Resource, defaultLightTheme, type RaRecord } from 'react-admin';
 import { Column, Summary, TotalItem } from 'devextreme-react/data-grid';
 import { DatagridDXRemote } from '../../../../src/index';
 import { dataProvider, onGridSuccess } from './dataProvider';
+import { GroupedRemoteCustomerList } from './GroupedRemoteCustomerList';
 
 export interface Customer extends RaRecord {
   id: number;
@@ -170,6 +171,11 @@ export function App(): React.JSX.Element {
         name="remote-customers"
         list={RemoteCustomerList}
         options={{ label: 'Remote Customers' }}
+      />
+      <Resource
+        name="grouped-remote-customers"
+        list={GroupedRemoteCustomerList}
+        options={{ label: 'Grouped Remote Customers' }}
       />
     </Admin>
   );

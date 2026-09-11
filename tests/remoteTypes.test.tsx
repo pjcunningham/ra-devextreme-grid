@@ -12,11 +12,16 @@ import {
   DatagridDXRemote,
   type DatagridDXRemoteProps,
   type DatagridDXRemoteSummaryOptions,
+  type DatagridDXRemoteSummaryGroupItem,
+  type DatagridDXRemoteGroupingOptions,
   type DatagridDXDataProvider,
   type GetGridLoadOptions,
   type GetGridParams,
   type GetGridResult,
   type GetGridSortDescriptor,
+  type GetGridGroupDescriptor,
+  type GetGridGroupKey,
+  type GetGridGroupItem,
   type GetGridSummaryDescriptor,
   type GetGridSummaryType,
   type GetGridSummaryValue,
@@ -71,8 +76,9 @@ describe('remote public types', () => {
       | 'remoteOperations'
       | 'stateStoring'
       | 'defaultPaging'
-      | 'grouping'
-      | 'groupPanel'
+      | 'sortByGroupSummaryInfo'
+      | 'defaultSortByGroupSummaryInfo'
+      | 'onSortByGroupSummaryInfoChange'
       | 'defaultGroupPanel'
       | 'onGroupPanelChange'
       | 'headerFilter'
@@ -149,7 +155,7 @@ describe('remote public types', () => {
     expectTypeOf<
       Extract<
         keyof DatagridDXRemoteSummaryOptions,
-        'calculateCustomSummary' | 'groupItems' | 'recalculateWhileEditing'
+        'calculateCustomSummary' | 'recalculateWhileEditing'
       >
     >().toEqualTypeOf<never>();
 
@@ -190,8 +196,8 @@ describe('remote public types', () => {
   it('rejects unsupported semantic summary props at compile time', () => {
     // @ts-expect-error Custom calculation is not executed by remote summaries.
     const callback = <DatagridDXRemote summary={{ calculateCustomSummary: () => undefined }} />;
-    // @ts-expect-error Group summaries remain unsupported.
-    const groups = <DatagridDXRemote summary={{ groupItems: [] }} />;
+    // @ts-expect-error Custom group summaries remain unsupported.
+    const groups = <DatagridDXRemote summary={{ groupItems: [{ summaryType: 'custom' }] }} />;
     // @ts-expect-error Editing recalculation configuration is not exposed.
     const editing = <DatagridDXRemote summary={{ recalculateWhileEditing: false }} />;
     // @ts-expect-error Empty-value semantics cannot be overridden.
@@ -237,11 +243,15 @@ describe('remote public types', () => {
       sort?: GetGridSortDescriptor[];
       filter?: unknown[] | null;
       totalSummary?: GetGridSummaryDescriptor[];
+      group?: GetGridGroupDescriptor[];
+      groupSummary?: GetGridSummaryDescriptor[];
+      requireGroupCount?: boolean;
     }>();
     expectTypeOf<GetGridParams>().toEqualTypeOf<{ loadOptions: GetGridLoadOptions }>();
     expectTypeOf<GetGridResult<Customer>>().toEqualTypeOf<{
-      data: Customer[];
+      data: Customer[] | GetGridGroupItem<Customer>[];
       totalCount?: number;
+      groupCount?: number;
       summary?: GetGridSummaryValue[];
     }>();
     const check = (provider: DatagridDXDataProvider) => {
@@ -270,5 +280,77 @@ describe('remote public types', () => {
     // @ts-expect-error Executable selectors are not transportable.
     const executable: GetGridSummaryDescriptor = { selector: () => 1, summaryType: 'max' };
     expect([count, avg, missing, custom, executable]).toHaveLength(5);
+  });
+
+  it('preserves native grouping flags, JSON keys and record generics', () => {
+    expectTypeOf<GetGridGroupDescriptor>().toEqualTypeOf<{
+      selector: string;
+      desc: boolean;
+      isExpanded: boolean;
+    }>();
+    expectTypeOf<GetGridGroupKey>().toEqualTypeOf<string | number | boolean | null>();
+    const group: GetGridGroupDescriptor = { selector: 'name', desc: false, isExpanded: false };
+    const node: GetGridGroupItem<Customer> = {
+      key: 'UK',
+      items: [{ id: 'a', name: 'Alice' }],
+      summary: [1],
+    };
+    expectTypeOf(node.items).toEqualTypeOf<Array<Customer | GetGridGroupItem<Customer>>>();
+    const functionGroup: GetGridGroupDescriptor = {
+      // @ts-expect-error Function group selectors cannot cross the wire.
+      selector: () => 'name',
+      desc: false,
+      isExpanded: false,
+    };
+    const interval: GetGridGroupDescriptor = {
+      selector: 'name',
+      desc: false,
+      isExpanded: false,
+      // @ts-expect-error Intervals are not ordinary supported DataGrid grouping.
+      groupInterval: 'year',
+    };
+    // @ts-expect-error Lazy server contents remain Phase 8C.
+    const lazy: GetGridGroupItem<Customer> = { key: 'UK', items: null };
+    expect([group, node, functionGroup, interval, lazy]).toHaveLength(5);
+  });
+
+  it('exposes safe native grouping, group panel and group-summary presentation', () => {
+    const grouping: DatagridDXRemoteGroupingOptions = {
+      autoExpandAll: true,
+      contextMenuEnabled: true,
+      allowCollapsing: true,
+    };
+    const item: DatagridDXRemoteSummaryGroupItem = {
+      column: 'age',
+      summaryType: 'avg',
+      skipEmptyValues: true,
+      alignByColumn: true,
+      showInGroupFooter: true,
+      displayFormat: 'Age: {0}',
+      valueFormat: 'fixedPoint',
+      customizeText: (info) => info.valueText,
+    };
+    const valid = (
+      <DatagridDXRemote<Customer>
+        grouping={grouping}
+        groupPanel={{ visible: true }}
+        summary={{ groupItems: [item] }}
+      />
+    );
+    // @ts-expect-error Only complete expanded groups are supported.
+    const collapsed = <DatagridDXRemote grouping={{ autoExpandAll: false }} />;
+    // @ts-expect-error Group paging remains adapter-owned.
+    const paging = <DatagridDXRemote remoteOperations={{ groupPaging: true }} />;
+    // @ts-expect-error Summary sorting has separate unsupported server semantics.
+    const summarySort = <DatagridDXRemote sortByGroupSummaryInfo={[{ summaryItem: 0 }]} />;
+    // @ts-expect-error Non-count group summaries require a native column.
+    const missing = <DatagridDXRemote summary={{ groupItems: [{ summaryType: 'avg' }] }} />;
+    const empty = (
+      <DatagridDXRemote
+        // @ts-expect-error Non-default empty semantics are not transmitted by DevExtreme.
+        summary={{ groupItems: [{ summaryType: 'count', skipEmptyValues: false }] }}
+      />
+    );
+    expect([valid, collapsed, paging, summarySort, missing, empty]).toHaveLength(6);
   });
 });

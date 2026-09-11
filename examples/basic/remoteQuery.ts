@@ -135,7 +135,7 @@ export function queryRemoteCustomers<RecordType extends RaRecord>(
   dataset: readonly RecordType[],
   resource: string,
   { loadOptions }: GetGridParams
-): GetGridResult<RecordType> {
+): Omit<GetGridResult<RecordType>, 'data'> & { data: RecordType[] } {
   if (resource !== 'remote-customers') {
     throw new Error(`Remote customers: unknown resource ${resource}`);
   }

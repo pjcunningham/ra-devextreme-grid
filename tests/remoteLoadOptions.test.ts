@@ -78,7 +78,7 @@ describe('remote load options', () => {
     'customQueryParams',
     'startDate',
     'endDate',
-  ])('rejects active %s', (field) => {
+  ])('rejects unsupported active shapes for %s', (field) => {
     expect(() =>
       normalizeLoadOptions({ [field]: field === 'requireGroupCount' ? true : ['id'] })
     ).toThrow(field);
@@ -193,5 +193,204 @@ describe('remote load options', () => {
         totalSummary: [...totalSummary, totalSummary[0]],
       } as unknown as LoadOptions)
     ).toThrow(/32/);
+  });
+});
+
+describe('remote grouping load options', () => {
+  const descriptor = (isExpanded = false) => ({ selector: 'country', desc: false, isExpanded });
+
+  it.each(
+    [[false], [true], [true, false], [true, true, false], [true, true, true, false]].map(
+      (flags) => [flags]
+    )
+  )('preserves explicit positional expansion flags %j', (flags) => {
+    const group = Object.freeze(flags.map((flag) => Object.freeze(descriptor(flag))));
+    const result = normalizeLoadOptions({ group } as unknown as LoadOptions);
+    expect(result).toEqual({ group });
+    expect(result.group).not.toBe(group);
+    group.forEach((item, index) => expect(result.group?.[index]).not.toBe(item));
+  });
+
+  it.each(
+    [
+      [false, false],
+      [true, false, false],
+      [false, true],
+      [true, false, true, false],
+    ].map((flags) => [flags])
+  )('rejects false at nonfinal positions %j', (flags) => {
+    expect(() => normalizeLoadOptions({ group: flags.map(descriptor) })).toThrow(/isExpanded/);
+  });
+
+  it('preserves actual native grouped options without injecting paging or count flags', () => {
+    const filter = ['age', '>=', 20];
+    const options = {
+      group: [
+        { selector: 'country', desc: true, isExpanded: true },
+        { selector: 'city', desc: false, isExpanded: false },
+      ],
+      groupSummary: [{ selector: 'id', summaryType: 'count' }],
+      totalSummary: [],
+      filter,
+      sort: [{ selector: 'age', desc: true }],
+      searchOperation: 'contains',
+      searchValue: null,
+      userData: {},
+    };
+    const normalized = normalizeLoadOptions(options as LoadOptions);
+    expect(normalized).toEqual({
+      group: options.group,
+      groupSummary: options.groupSummary,
+      filter,
+      sort: options.sort,
+    });
+    expect(normalized.filter).toBe(filter);
+  });
+
+  it('accepts an explicit single descriptor and preserves selectors and both count Booleans', () => {
+    for (const selector of [' country ', 'customer.country', '__dict__', 'country; DROP TABLE']) {
+      for (const requireGroupCount of [false, true]) {
+        const group = { selector, desc: true, isExpanded: false };
+        expect(normalizeLoadOptions({ group, requireGroupCount })).toEqual({
+          group: [group],
+          requireGroupCount,
+        });
+      }
+    }
+  });
+
+  it.each([
+    'country',
+    1,
+    false,
+    {},
+    new Date(),
+    [null],
+    [undefined],
+    new Array(1),
+    [['country']],
+    { selector: 'country' },
+    { selector: 'country', desc: false },
+    { selector: 'country', isExpanded: true },
+    { selector: 'country', desc: 'desc', isExpanded: true },
+    { selector: 'country', desc: false, isExpanded: 'true' },
+    { selector: 'country', desc: false, isExpanded: null },
+    { selector: '', desc: false, isExpanded: true },
+    { selector: '  ', desc: false, isExpanded: true },
+    { selector: null, desc: false, isExpanded: true },
+    { selector: 1, desc: false, isExpanded: true },
+    { selector: () => 'country', desc: false, isExpanded: true },
+    { selector: 'country', desc: false, isExpanded: true, groupInterval: 'year' },
+    { selector: 'country', desc: false, isExpanded: true, extra: undefined },
+    { selector: 'country', desc: false, isExpanded: true, [Symbol('extra')]: 1 },
+    Object.create({ selector: 'country', desc: false, isExpanded: true }),
+  ])('rejects malformed group descriptors %#', (group) => {
+    expect(() => normalizeLoadOptions({ group } as LoadOptions)).toThrow(/group/);
+  });
+
+  it('bounds group depth at four', () => {
+    const group = Array.from({ length: 4 }, () => descriptor(true));
+    expect(normalizeLoadOptions({ group }).group).toHaveLength(4);
+    expect(() => normalizeLoadOptions({ group: [...group, descriptor()] })).toThrow(/4/);
+  });
+
+  it.each([{ skip: 0 }, { skip: 1 }, { take: 0 }, { take: 10 }, { skip: 0, take: 10 }])(
+    'rejects explicit grouped paging %j',
+    (paging) => {
+      expect(() => normalizeLoadOptions({ group: [descriptor()], ...paging })).toThrow(/skip|take/);
+    }
+  );
+
+  it.each([undefined, null, []])(
+    'omits inactive grouping %j but rejects dependent options',
+    (group) => {
+      expect(
+        normalizeLoadOptions({ group, groupSummary: [], requireGroupCount: false } as LoadOptions)
+      ).toEqual({});
+      expect(() => normalizeLoadOptions({ group, requireGroupCount: true } as LoadOptions)).toThrow(
+        /requireGroupCount.*group/
+      );
+      expect(() =>
+        normalizeLoadOptions({
+          group,
+          groupSummary: [{ summaryType: 'count' }],
+        } as unknown as LoadOptions)
+      ).toThrow(/groupSummary.*group/);
+    }
+  );
+
+  it.each([null, 0, 1, 'false', [], {}, () => true])(
+    'rejects non-Boolean group count %#',
+    (requireGroupCount) => {
+      for (const group of [undefined, [descriptor()]]) {
+        expect(() => normalizeLoadOptions({ group, requireGroupCount } as LoadOptions)).toThrow(
+          /requireGroupCount/
+        );
+      }
+    }
+  );
+
+  it('reuses ordered summary normalization with independent 32-item limits', () => {
+    const groupSummary = Object.freeze([
+      Object.freeze({ selector: 'age', summaryType: 'sum' }),
+      Object.freeze({ summaryType: 'count', selector: undefined }),
+      Object.freeze({ selector: 'age', summaryType: 'sum' }),
+    ]);
+    const normalized = normalizeLoadOptions({
+      group: [descriptor()],
+      groupSummary,
+    } as unknown as LoadOptions);
+    expect(normalized.groupSummary).toEqual([
+      { selector: 'age', summaryType: 'sum' },
+      { summaryType: 'count' },
+      { selector: 'age', summaryType: 'sum' },
+    ]);
+    expect(normalized.groupSummary).not.toBe(groupSummary);
+    expect(normalized.groupSummary?.[0]).not.toBe(groupSummary[0]);
+    const summaries = Array.from({ length: 32 }, () => ({ summaryType: 'count' }));
+    const options = { group: [descriptor()], totalSummary: summaries, groupSummary: summaries };
+    const result = normalizeLoadOptions(options as unknown as LoadOptions);
+    expect(result.totalSummary).toHaveLength(32);
+    expect(result.groupSummary).toHaveLength(32);
+    expect(() =>
+      normalizeLoadOptions({
+        ...options,
+        groupSummary: [...summaries, summaries[0]],
+      } as unknown as LoadOptions)
+    ).toThrow(/groupSummary.*32/);
+    expect(() =>
+      normalizeLoadOptions({
+        ...options,
+        totalSummary: [...summaries, summaries[0]],
+      } as unknown as LoadOptions)
+    ).toThrow(/totalSummary.*32/);
+  });
+
+  it.each([
+    'age',
+    1,
+    false,
+    {},
+    new Date(),
+    [null],
+    [undefined],
+    new Array(1),
+    [['age']],
+    { selector: 'age' },
+    { summaryType: 'custom' },
+    { summaryType: 'SUM', selector: 'age' },
+    { summaryType: 'avg' },
+    { selector: null, summaryType: 'count' },
+    { selector: '', summaryType: 'count' },
+    { selector: '  ', summaryType: 'sum' },
+    { selector: 1, summaryType: 'count' },
+    { selector: () => 1, summaryType: 'count' },
+    { selector: 'age', summaryType: () => 'sum' },
+    { selector: 'age', summaryType: 'sum', extra: true },
+    { summaryType: 'count', [Symbol('extra')]: true },
+  ])('rejects malformed group summaries %#', (groupSummary) => {
+    expect(() =>
+      normalizeLoadOptions({ group: [descriptor()], groupSummary } as LoadOptions)
+    ).toThrow(/groupSummary/);
   });
 });

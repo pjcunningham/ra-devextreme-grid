@@ -36,7 +36,7 @@ export const dataProvider: DatagridDXDataProvider = {
     resource: string,
     params: GetGridParams
   ): Promise<GetGridResult<RecordType>> {
-    if (resource !== 'remote-customers') {
+    if (resource !== 'remote-customers' && resource !== 'grouped-remote-customers') {
       throw new Error(`Unsupported resource: ${resource}`);
     }
 
@@ -88,6 +88,7 @@ export const dataProvider: DatagridDXDataProvider = {
       data: result.data,
       totalCount: result.totalCount,
       ...(result.summary !== undefined ? { summary: result.summary } : {}),
+      ...(result.groupCount !== undefined ? { groupCount: result.groupCount } : {}),
     };
   },
 };

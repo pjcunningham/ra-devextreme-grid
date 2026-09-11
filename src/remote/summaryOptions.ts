@@ -24,48 +24,44 @@ export function validateSummaryOptions(value: unknown): void {
   if (options.calculateCustomSummary != null) {
     throw new Error('DatagridDXRemote summary.calculateCustomSummary is not supported.');
   }
-  if (
-    options.groupItems != null &&
-    !(Array.isArray(options.groupItems) && options.groupItems.length === 0)
-  ) {
-    throw new Error('DatagridDXRemote summary.groupItems must be omitted, null, or empty.');
-  }
   if (options.recalculateWhileEditing !== undefined && options.recalculateWhileEditing !== false) {
     throw new Error('DatagridDXRemote summary.recalculateWhileEditing must be omitted or false.');
   }
   validateSkipEmptyValues(options.skipEmptyValues, 'summary');
 
-  const { totalItems } = options;
-  if (totalItems == null) return;
-  if (!Array.isArray(totalItems)) {
-    throw new Error('DatagridDXRemote summary.totalItems must be an array.');
-  }
-  if (totalItems.length > MAX_SUMMARY_ITEMS) {
-    throw new Error(
-      `DatagridDXRemote summary.totalItems supports at most ${MAX_SUMMARY_ITEMS} items.`
-    );
-  }
-  for (let index = 0; index < totalItems.length; index += 1) {
-    const path = `summary.totalItems[${index}]`;
-    const item = requireObject(totalItems[index], path);
-    validateSkipEmptyValues(item.skipEmptyValues, path);
-    const { summaryType, column } = item;
-    if (
-      summaryType !== 'count' &&
-      summaryType !== 'sum' &&
-      summaryType !== 'avg' &&
-      summaryType !== 'min' &&
-      summaryType !== 'max'
-    ) {
+  for (const collection of ['totalItems', 'groupItems'] as const) {
+    const items = options[collection];
+    if (items == null) continue;
+    if (!Array.isArray(items)) {
+      throw new Error(`DatagridDXRemote summary.${collection} must be an array.`);
+    }
+    if (items.length > MAX_SUMMARY_ITEMS) {
       throw new Error(
-        `DatagridDXRemote ${path}.summaryType must be an explicit count, sum, avg, min, max.`
+        `DatagridDXRemote summary.${collection} supports at most ${MAX_SUMMARY_ITEMS} items.`
       );
     }
-    if (column === undefined && summaryType === 'count') continue;
-    if (typeof column !== 'string' || !column.trim()) {
-      throw new Error(
-        `DatagridDXRemote ${path}.column must be a nonempty string except for count.`
-      );
+    for (let index = 0; index < items.length; index += 1) {
+      const path = `summary.${collection}[${index}]`;
+      const item = requireObject(items[index], path);
+      validateSkipEmptyValues(item.skipEmptyValues, path);
+      const { summaryType, column } = item;
+      if (
+        summaryType !== 'count' &&
+        summaryType !== 'sum' &&
+        summaryType !== 'avg' &&
+        summaryType !== 'min' &&
+        summaryType !== 'max'
+      ) {
+        throw new Error(
+          `DatagridDXRemote ${path}.summaryType must be an explicit count, sum, avg, min, max.`
+        );
+      }
+      if (column === undefined && summaryType === 'count') continue;
+      if (typeof column !== 'string' || !column.trim()) {
+        throw new Error(
+          `DatagridDXRemote ${path}.column must be a nonempty string except for count.`
+        );
+      }
     }
   }
 }

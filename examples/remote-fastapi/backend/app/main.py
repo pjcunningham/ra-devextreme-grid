@@ -77,7 +77,7 @@ def create_app(
         request: GridRequest,
         session: Annotated[Session, Depends(get_session)],
     ) -> GridResponse:
-        records, total_count, summary = execute_customer_grid_query(
+        records, total_count, summary, group_count = execute_customer_grid_query(
             session=session, load_options=request.load_options
         )
         response_options: dict[str, Any] = {}
@@ -85,6 +85,8 @@ def create_app(
             response_options["total_count"] = total_count
         if summary is not None:
             response_options["summary"] = summary
+        if group_count is not None:
+            response_options["group_count"] = group_count
         return GridResponse(data=records, **response_options)
 
     return app

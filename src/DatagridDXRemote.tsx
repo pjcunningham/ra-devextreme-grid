@@ -11,6 +11,7 @@ import type dxDataGrid from 'devextreme/ui/data_grid';
 import { useDataProvider, useResourceContext, type RaRecord } from 'react-admin';
 import { createGridStore } from './remote/createGridStore';
 import { validateSummaryOptions } from './remote/summaryOptions';
+import { validateGroupingOptions } from './remote/groupingOptions';
 import type { DatagridDXDataProvider } from './remote/types';
 import type { DatagridDXRemoteProps } from './types';
 
@@ -18,12 +19,11 @@ const remoteOperations = {
   paging: true,
   sorting: true,
   filtering: true,
-  grouping: false,
+  grouping: true,
   summary: true,
   groupPaging: false,
 };
 const selection = { mode: 'none' } as const;
-const grouping = { autoExpandAll: false, contextMenuEnabled: false };
 const hidden = { visible: false };
 const editing = { allowAdding: false, allowUpdating: false, allowDeleting: false };
 const stateStoring = { enabled: false };
@@ -36,6 +36,8 @@ export const DatagridDXRemote = forwardRef(function DatagridDXRemote<
     resource: resourceProp,
     paging,
     sorting,
+    grouping: groupingProp,
+    groupPanel,
     onInitialized,
     onOptionChanged,
     onDisposing,
@@ -49,6 +51,7 @@ export const DatagridDXRemote = forwardRef(function DatagridDXRemote<
   const instance = useRef<dxDataGrid<RecordType, RecordType['id']> | null>(null);
   const validateBeforeLoad = useCallback(() => {
     validateSummaryOptions(instance.current?.option('summary'));
+    validateGroupingOptions(instance.current);
   }, []);
   const handleInitialized = useCallback<
     NonNullable<DatagridDXRemoteProps<RecordType>['onInitialized']>
@@ -65,6 +68,17 @@ export const DatagridDXRemote = forwardRef(function DatagridDXRemote<
   >(
     (event) => {
       if (event.name === 'summary') validateSummaryOptions(event.component.option('summary'));
+      if (
+        [
+          'grouping',
+          'columns',
+          'remoteOperations',
+          'sortByGroupSummaryInfo',
+          'headerFilter',
+        ].includes(event.name)
+      ) {
+        validateGroupingOptions(event.component);
+      }
       onOptionChanged?.(event);
     },
     [onOptionChanged]
@@ -88,6 +102,11 @@ export const DatagridDXRemote = forwardRef(function DatagridDXRemote<
     [pageIndex, pageSize]
   );
   const sortingOptions = useMemo(() => ({ mode: 'multiple' as const, ...sorting }), [sorting]);
+  const operationOptions = useMemo(() => ({ ...remoteOperations }), []);
+  const hiddenOptions = useMemo(
+    () => ({ header: { ...hidden }, filter: { ...hidden }, search: { ...hidden } }),
+    []
+  );
   const store = useMemo(() => {
     if (!resource?.trim()) {
       throw new Error(
@@ -107,14 +126,14 @@ export const DatagridDXRemote = forwardRef(function DatagridDXRemote<
       dataSource={store}
       defaultPaging={pagingOptions}
       sorting={sortingOptions}
-      remoteOperations={remoteOperations}
+      remoteOperations={operationOptions}
       selection={selection}
       syncLookupFilterValues={false}
-      grouping={grouping}
-      groupPanel={hidden}
-      headerFilter={hidden}
-      filterPanel={hidden}
-      searchPanel={hidden}
+      {...(groupingProp === undefined ? {} : { grouping: groupingProp })}
+      {...(groupPanel === undefined ? {} : { groupPanel })}
+      headerFilter={hiddenOptions.header}
+      filterPanel={hiddenOptions.filter}
+      searchPanel={hiddenOptions.search}
       editing={editing}
       stateStoring={stateStoring}
     />

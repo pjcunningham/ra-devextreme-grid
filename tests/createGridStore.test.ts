@@ -81,7 +81,7 @@ describe('processed grid store', () => {
     ).rejects.toBe(error);
   });
 
-  it('rejects advanced load requests before the provider runs', async () => {
+  it('rejects shorthand grouping before the provider runs', async () => {
     const { store, getGrid } = makeStore();
     await expect(Promise.resolve(store.load({ group: 'country' }))).rejects.toThrow(/group/);
     expect(getGrid).not.toHaveBeenCalled();

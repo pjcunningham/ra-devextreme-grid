@@ -289,14 +289,12 @@ describe('DatagridDXRemote native query integration', () => {
     }
   );
 
-  it('reports native column grouping as an error before sending an advanced request to the provider', async () => {
+  it('reports a flat-only provider response to native grouping through the grid error event', async () => {
     const harness = mountRemote();
     await harness.ready();
     const calls = harness.getGrid.mock.calls.length;
     act(() => {
       harness.grid().beginUpdate();
-      // Grouping is disabled by the wrapper; force an advanced native request via public options.
-      harness.grid().option('remoteOperations.grouping', true);
       harness.grid().columnOption('country', 'groupIndex', 0);
       harness.grid().endUpdate();
     });
@@ -305,7 +303,12 @@ describe('DatagridDXRemote native query integration', () => {
       /DatagridDXRemote.*group/
     );
     await waitFor(() => expect(harness.grid().getDataSource().isLoading()).toBe(false));
-    expect(harness.getGrid).toHaveBeenCalledTimes(calls);
+    expect(harness.getGrid).toHaveBeenCalledTimes(calls + 1);
+    expect(harness.latest().group).toEqual([
+      { selector: 'country', desc: false, isExpanded: false },
+    ]);
+    expect(harness.latest()).not.toHaveProperty('skip');
+    expect(harness.latest()).not.toHaveProperty('take');
     expect(harness.getList).not.toHaveBeenCalled();
   });
 });

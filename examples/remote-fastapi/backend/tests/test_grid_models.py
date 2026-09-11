@@ -81,7 +81,18 @@ def test_grid_request_forbids_unknown_fields():
 
     with pytest.raises(ValidationError):
         GridRequest.model_validate(
-            {"loadOptions": {"group": [{"selector": "country"}]}}
+            {
+                "loadOptions": {
+                    "group": [
+                        {
+                            "selector": "country",
+                            "desc": False,
+                            "isExpanded": False,
+                            "groupInterval": "year",
+                        }
+                    ]
+                }
+            }
         )
 
     with pytest.raises(ValidationError):
