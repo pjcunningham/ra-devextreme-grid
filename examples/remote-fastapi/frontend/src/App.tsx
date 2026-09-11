@@ -68,6 +68,7 @@ export function RemoteCustomerList(): React.JSX.Element {
         </div>
       )}
       <DatagridDXRemote<Customer>
+        layoutPreferenceKey="example.customers.remote.layout"
         paging={{ pageSize: 10 }}
         cacheEnabled={false}
         loadPanel={{ enabled: true }}
@@ -85,6 +86,9 @@ export function RemoteCustomerList(): React.JSX.Element {
         allowColumnResizing={true}
         allowColumnReordering={true}
         columnAutoWidth={true}
+        columnChooser={{ enabled: true, mode: 'select' }}
+        columnFixing={{ enabled: true }}
+        columnHidingEnabled={true}
         onDataErrorOccurred={handleDataErrorOccurred}
       >
         <Column
@@ -112,6 +116,7 @@ export function RemoteCustomerList(): React.JSX.Element {
         <Column
           dataField="city"
           caption="City"
+          hidingPriority={0}
           dataType="string"
           filterOperations={[...stringFilterOperations]}
           selectedFilterOperation="contains"

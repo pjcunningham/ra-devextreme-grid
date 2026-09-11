@@ -12,6 +12,12 @@ See the [Phase 8B report](../../docs/phase-8b-report.md) for native grouping pro
 
 See the [Phase 8C report](../../docs/phase-8c-report.md) for lazy native requests, SQL efficiency, fresh-server evidence and **Group-Paged Remote Customers** at `/#/group-paged-remote-customers`.
 
+### Frontend visual layout preferences
+
+The flat page uses `layoutPreferenceKey="example.customers.remote.layout"`; the group-paged page uses the separate `example.customers.groupPaged.layout` key. Hide/show columns with Column Chooser; the flat page also supports native drag reordering, resizing, fixing and adaptive hiding. Reload to restore saved visual layout through the normal React-Admin Store.
+
+Filters, sort, paging, interactive grouping and expansion are **not** restored by Phase 9A. They start from application defaults after reload. Adaptive temporary hiding is not saved as user visibility. See the root [Visual Layout Persistence](../../README.md#visual-layout-persistence) documentation for custom Stores, compatible shared keys and `useRemoveFromStore` reset behavior. No backend/wire changes are involved.
+
 ## Running the Real Browser Example
 
 Running the full browser example requires two terminal windows:

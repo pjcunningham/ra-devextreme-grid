@@ -14,6 +14,7 @@ import { validateSummaryOptions } from './remote/summaryOptions';
 import { readGroupPagingContext, validateGroupingOptions } from './remote/groupingOptions';
 import type { DatagridDXDataProvider } from './remote/types';
 import type { DatagridDXRemoteProps } from './types';
+import { useGridLayoutPersistence } from './persistence/useGridLayoutPersistence';
 
 const remoteOperations = {
   paging: true,
@@ -41,7 +42,9 @@ export const DatagridDXRemote = forwardRef(function DatagridDXRemote<
     groupPaging = false,
     onInitialized,
     onOptionChanged,
+    onContentReady,
     onDisposing,
+    layoutPreferenceKey,
     ...restProps
   }: DatagridDXRemoteProps<RecordType>,
   ref: ForwardedRef<DataGridRef<RecordType, RecordType['id']>>
@@ -50,6 +53,8 @@ export const DatagridDXRemote = forwardRef(function DatagridDXRemote<
   const resource = resourceProp === '' ? '' : contextResource;
   const dataProvider = useDataProvider<DatagridDXDataProvider>();
   const instance = useRef<dxDataGrid<RecordType, RecordType['id']> | null>(null);
+  const { handleLayoutContentReady, handleLayoutOptionChanged, handleLayoutDisposing } =
+    useGridLayoutPersistence<RecordType>(layoutPreferenceKey);
   const validateBeforeLoad = useCallback(() => {
     validateSummaryOptions(instance.current?.option('summary'));
     validateGroupingOptions(instance.current, groupPaging);
@@ -84,18 +89,29 @@ export const DatagridDXRemote = forwardRef(function DatagridDXRemote<
       ) {
         validateGroupingOptions(event.component, groupPaging);
       }
+      handleLayoutOptionChanged(event);
       onOptionChanged?.(event);
     },
-    [onOptionChanged, groupPaging]
+    [onOptionChanged, groupPaging, handleLayoutOptionChanged]
+  );
+  const handleContentReady = useCallback<
+    NonNullable<DatagridDXRemoteProps<RecordType>['onContentReady']>
+  >(
+    (event) => {
+      handleLayoutContentReady(event);
+      onContentReady?.(event);
+    },
+    [handleLayoutContentReady, onContentReady]
   );
   const handleDisposing = useCallback<
     NonNullable<DatagridDXRemoteProps<RecordType>['onDisposing']>
   >(
     (event) => {
+      handleLayoutDisposing(event);
       instance.current = null;
       onDisposing?.(event);
     },
-    [onDisposing]
+    [onDisposing, handleLayoutDisposing]
   );
   const { pageIndex, pageSize } = paging ?? {};
   const pagingOptions = useMemo(
@@ -133,6 +149,7 @@ export const DatagridDXRemote = forwardRef(function DatagridDXRemote<
       ref={ref}
       onInitialized={handleInitialized}
       onOptionChanged={handleOptionChanged}
+      onContentReady={handleContentReady}
       onDisposing={handleDisposing}
       dataSource={store}
       defaultPaging={pagingOptions}

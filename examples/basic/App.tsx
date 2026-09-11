@@ -319,6 +319,7 @@ export const CustomerList = (): React.JSX.Element => (
   >
     <SelectedCount />
     <DatagridDX<Customer>
+      layoutPreferenceKey="example.customers.managed.layout"
       filtering
       selection
       rowClick="edit"

@@ -20,6 +20,8 @@ export function GroupPagedRemoteCustomerList(): React.JSX.Element {
         </div>
       )}
       <DatagridDXRemote<Customer>
+        layoutPreferenceKey="example.customers.groupPaged.layout"
+        columnChooser={{ enabled: true, mode: 'select' }}
         groupPaging
         grouping={{ autoExpandAll: false, contextMenuEnabled: true }}
         paging={{ pageSize: 3 }}

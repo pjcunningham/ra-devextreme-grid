@@ -91,6 +91,8 @@ export type DatagridDXProps<RecordType extends RaRecord = RaRecord> = Omit<
   | 'searchPanel'
   | 'stateStoring'
 > & {
+  /** Exact React-Admin Store key for opt-in visual column layout, never query state. */
+  layoutPreferenceKey?: string;
   selection?: boolean | DatagridDXSelectionOptions;
   rowClick?: DatagridDXRowClick;
   filtering?: boolean | DatagridDXFilterRowOptions;
@@ -210,6 +212,8 @@ export type DatagridDXRemoteProps<RecordType extends RaRecord = RaRecord> = Omit
   | 'syncLookupFilterValues'
 > & {
   resource?: string;
+  /** Exact React-Admin Store key for opt-in visual column layout, never query state. */
+  layoutPreferenceKey?: string;
   /** Opt into lazy remote groups; requires autoExpandAll=false and no expandAll(). */
   groupPaging?: boolean;
   paging?: Omit<NonNullable<IDataGridOptions<RecordType, RecordType['id']>['paging']>, 'enabled'>;

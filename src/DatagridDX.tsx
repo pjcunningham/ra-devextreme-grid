@@ -20,8 +20,10 @@ import type { DatagridDXProps } from './types';
 import { toDxSortOrder, toRaSortOrder } from './sortUtils';
 import { areIdentifierSetsEqual } from './selectionUtils';
 import { useManagedFiltering } from './useManagedFiltering';
+import { useGridLayoutPersistence } from './persistence/useGridLayoutPersistence';
 
 const DEFAULT_EMPTY_ARRAY: never[] = [];
+const stateStoring = { enabled: false };
 
 function NavigationBridge({
   redirectRef,
@@ -140,6 +142,8 @@ export const DatagridDX = forwardRef(function DatagridDX<RecordType extends RaRe
   const {
     onContentReady,
     onOptionChanged,
+    onDisposing,
+    layoutPreferenceKey,
     onSelectionChanged,
     onRowClick,
     children,
@@ -151,6 +155,9 @@ export const DatagridDX = forwardRef(function DatagridDX<RecordType extends RaRe
     getDxFilterValue,
     ...restProps
   } = props;
+
+  const { handleLayoutContentReady, handleLayoutOptionChanged, handleLayoutDisposing } =
+    useGridLayoutPersistence<RecordType>(layoutPreferenceKey);
 
   const { filterRowConfig, filterSyncEnabled, handleFilterOptionChanged, syncGridFilter } =
     useManagedFiltering<RecordType>({
@@ -267,15 +274,17 @@ export const DatagridDX = forwardRef(function DatagridDX<RecordType extends RaRe
     (e: DataGridContentReadyEvent<RecordType>) => {
       syncGridSort();
       syncGridFilter();
+      handleLayoutContentReady(e);
       onContentReady?.(e);
     },
-    [syncGridSort, syncGridFilter, onContentReady]
+    [syncGridSort, syncGridFilter, handleLayoutContentReady, onContentReady]
   );
 
   // Compose onOptionChanged to intercept user column sorting and filtering
   const handleOptionChanged = useCallback(
     (e: DataGridOptionChangedEvent<RecordType>) => {
       handleFilterOptionChanged(e);
+      handleLayoutOptionChanged(e);
 
       if (
         !isSyncingRef.current &&
@@ -312,7 +321,15 @@ export const DatagridDX = forwardRef(function DatagridDX<RecordType extends RaRe
 
       onOptionChanged?.(e);
     },
-    [handleFilterOptionChanged, onOptionChanged, setSort]
+    [handleFilterOptionChanged, handleLayoutOptionChanged, onOptionChanged, setSort]
+  );
+
+  const handleDisposing = useCallback<NonNullable<DatagridDXProps<RecordType>['onDisposing']>>(
+    (event) => {
+      handleLayoutDisposing(event);
+      onDisposing?.(event);
+    },
+    [handleLayoutDisposing, onDisposing]
   );
 
   return (
@@ -326,12 +343,14 @@ export const DatagridDX = forwardRef(function DatagridDX<RecordType extends RaRe
         noDataText={isPending ? '' : (noDataText ?? 'No data')}
         paging={{ enabled: false }}
         sorting={{ mode: 'single' }}
+        stateStoring={stateStoring}
         filterRow={filterRowConfig}
         filterSyncEnabled={filterSyncEnabled}
         selection={selectionConfig}
         selectedRowKeys={selection ? currentPageSelectedKeys : undefined}
         onContentReady={handleContentReady}
         onOptionChanged={handleOptionChanged}
+        onDisposing={handleDisposing}
         onSelectionChanged={handleSelectionChanged}
         onRowClick={handleRowClick}
       >
