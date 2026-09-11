@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/ra-devextreme-grid.iml" filepath="$PROJECT_DIR$/.idea/ra-devextreme-grid.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/remote-fastapi-backend.iml" filepath="$PROJECT_DIR$/.idea/remote-fastapi-backend.iml" />
     </modules>
   </component>
 </project>
