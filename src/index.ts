@@ -2,6 +2,7 @@ export { DatagridDX } from './DatagridDX';
 export { DatagridDXPagination } from './DatagridDXPagination';
 export { DatagridDXRemote } from './DatagridDXRemote';
 export { defaultGetRaFilters, defaultGetDxFilterValue, parseRaFilterKey } from './filterUtils';
+export type { ParsedRaFilterKey } from './filterUtils';
 export type {
   DatagridDXProps,
   DatagridDXPaginationProps,

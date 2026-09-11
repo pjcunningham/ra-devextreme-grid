@@ -1,6 +1,6 @@
 {
   "name": "ra-devextreme-grid",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "DevExpress DevExtreme React DataGrid integration for React-Admin",
   "type": "module",
   "main": "./dist/index.js",
@@ -27,6 +27,7 @@
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "test": "vitest run",
+    "test:package": "node scripts/test-package.mjs",
     "test:e2e": "node tests/e2e/run.mjs",
     "test:e2e:headed": "node tests/e2e/run.mjs --headed"
   },
@@ -68,7 +69,10 @@
     "devextreme",
     "devextreme-react",
     "datagrid",
-    "grid"
+    "data-grid",
+    "admin",
+    "server-side",
+    "remote"
   ],
   "author": "Paul Cunningham",
   "license": "MIT",

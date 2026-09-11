@@ -49,7 +49,7 @@ http://127.0.0.1:5174
 
 ## Running Automated End-to-End Tests
 
-The browser suite has **25 passing scenarios**: 17 flat/total-summary regressions, four complete-tree scenarios and four group-paging scenarios. The four group-paging scenarios also pass headed Chromium with strict resource/console checks and fresh server/database isolation. See the Phase 8C report; its local fresh evidence supersedes, but does not rewrite, the historical Phase 8B server-reuse qualification.
+The browser suite has **35 passing scenarios**: 17 flat/total-summary regressions, four complete-tree scenarios, four group-paging scenarios, and 10 layout persistence scenarios. The scenarios pass in Chromium with strict resource/console checks and fresh server/database isolation.
 
 ```sh
 # Install Chromium browser binaries (first-time only)
