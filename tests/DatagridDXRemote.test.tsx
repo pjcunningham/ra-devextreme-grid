@@ -150,6 +150,7 @@ describe('DatagridDXRemote with real React-Admin contexts', () => {
     expect(grid().option('paging.enabled')).toBe(true);
     expect(grid().option('sorting.mode')).toBe('multiple');
     expect(grid().option('selection.mode')).toBe('none');
+    expect(grid().option('keyExpr')).toBeUndefined();
     expect(grid().getDataSource().store().key()).toBe('id');
     expect(grid().getKeyByRowIndex(0)).toBe('customer-1');
     expect(provider.getList).not.toHaveBeenCalled();
@@ -213,6 +214,50 @@ describe('DatagridDXRemote with real React-Admin contexts', () => {
     expect(grid().pageSize()).toBe(30);
     expect(grid().pageCount()).toBe(2);
     expect(provider.getList).not.toHaveBeenCalled();
+  });
+
+  it('allows changing page size and does not roll back when an initial page size is configured via paging prop', async () => {
+    const provider = makeProvider();
+    const { grid } = mountRemote({
+      dataProvider: provider,
+      gridProps: {
+        paging: { pageSize: 10 },
+        pager: {
+          visible: true,
+          allowedPageSizes: [5, 10, 25],
+          showPageSizeSelector: true,
+        },
+      },
+    });
+
+    expect(await screen.findByText('Customer 1')).toBeInTheDocument();
+    expect(grid().pageSize()).toBe(10);
+    expect(provider.getGrid).toHaveBeenLastCalledWith('customers', {
+      loadOptions: expect.objectContaining({ skip: 0, take: 10, requireTotalCount: true }),
+    });
+
+    // Test changing page size via public grid API
+    act(() => {
+      grid().pageSize(25);
+    });
+
+    await waitFor(() => {
+      expect(provider.getGrid).toHaveBeenCalledTimes(2);
+      expect(grid().getDataSource().isLoading()).toBe(false);
+    });
+    expect(grid().pageSize()).toBe(25);
+
+    // Flush timers/updates to verify DevExtreme OptionsManager guards do not roll pageSize back
+    await flushGridUpdates();
+    expect(grid().pageSize()).toBe(25);
+
+    // Reduce page size to 5 and verify no rollback occurs
+    act(() => {
+      grid().pageSize(5);
+    });
+    expect(grid().pageSize()).toBe(5);
+    await flushGridUpdates();
+    expect(grid().pageSize()).toBe(5);
   });
 
   it('preserves the exact store and current page without loading on an unrelated settled rerender', async () => {
@@ -394,5 +439,44 @@ describe('DatagridDXRemote with real React-Admin contexts', () => {
     );
     expect(grid().getDataSource().isLoading()).toBe(false);
     expect(getList).not.toHaveBeenCalled();
+  });
+
+  it('supports numeric record IDs and resolves row identity via CustomStore key without configuring DataGrid keyExpr', async () => {
+    interface NumericCustomer extends RaRecord<number> {
+      id: number;
+      name: string;
+    }
+    const numericCustomers: NumericCustomer[] = [
+      { id: 101, name: 'Numeric Customer 101' },
+      { id: 102, name: 'Numeric Customer 102' },
+    ];
+    const getGrid = vi.fn(async () => ({
+      data: numericCustomers,
+      totalCount: 2,
+    }));
+    const provider = { ...testDataProvider(), getGrid };
+    const ref = createRef<DataGridRef<NumericCustomer, number>>();
+
+    render(
+      <TestMemoryRouter initialEntries={['/numeric-customers']}>
+        <AdminContext dataProvider={provider} store={memoryStore()}>
+          <ResourceContextProvider value="numeric-customers">
+            <DatagridDXRemote<NumericCustomer> ref={ref}>
+              <Column dataField="id" dataType="number" />
+              <Column dataField="name" dataType="string" />
+            </DatagridDXRemote>
+          </ResourceContextProvider>
+        </AdminContext>
+      </TestMemoryRouter>
+    );
+
+    expect(await screen.findByText('Numeric Customer 101')).toBeInTheDocument();
+    const grid = ref.current!.instance();
+    expect(grid.option('keyExpr')).toBeUndefined();
+    expect(grid.getDataSource().store().key()).toBe('id');
+    expect(grid.getKeyByRowIndex(0)).toBe(101);
+    expect(grid.getKeyByRowIndex(1)).toBe(102);
+    expect(grid.keyOf(numericCustomers[0]!)).toBe(101);
+    expect(grid.keyOf(numericCustomers[1]!)).toBe(102);
   });
 });

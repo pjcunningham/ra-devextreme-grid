@@ -53,8 +53,7 @@ export const DatagridDXRemote = forwardRef(function DatagridDXRemote<
       {...restProps}
       ref={ref}
       dataSource={store}
-      keyExpr="id"
-      paging={pagingOptions}
+      defaultPaging={pagingOptions}
       sorting={sortingOptions}
       remoteOperations={remoteOperations}
       selection={selection}

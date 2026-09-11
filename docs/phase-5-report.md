@@ -288,3 +288,7 @@ The frontend request/result contract is sufficiently small, typed, and tested to
 ### Recommended next step
 
 Proceed to Phase 6 contract/backend work after developer review; complete the documented licensed-browser smoke scenarios before a release. Phase 6 was not started here.
+
+### Post-Phase-5 Note: Remote Row-Key Cleanup (Phase 5A)
+
+In Phase 5A, the internal `keyExpr="id"` on the DevExtreme `DataGrid` was removed from `DatagridDXRemote`. DevExtreme warning `W1011` was resolved: DevExtreme does not apply `keyExpr` when `dataSource` is a `CustomStore` instead of an array. Remote row identity is provided exclusively by the CustomStore `key: 'id'`. `DatagridDXRemoteProps` continues to omit consumer `keyExpr`.

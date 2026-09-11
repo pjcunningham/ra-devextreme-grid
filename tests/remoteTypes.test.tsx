@@ -110,11 +110,13 @@ describe('remote public types', () => {
     const invalidSource = <DatagridDXRemote dataSource={[]} />;
     // @ts-expect-error Disabling native remote paging is not supported.
     const invalidPaging = <DatagridDXRemote paging={{ enabled: false }} />;
+    // @ts-expect-error Consumer keyExpr is omitted; row identity is adapter-owned via CustomStore key.
+    const invalidKeyExpr = <DatagridDXRemote keyExpr="id" />;
     const invalidRef = (
       // @ts-expect-error Record identifiers must match the forwarded ref.
       <DatagridDXRemote<Customer> ref={createRef<DataGridRef<Customer, number>>()} />
     );
-    expect([invalidSource, invalidPaging, invalidRef]).toHaveLength(3);
+    expect([invalidSource, invalidPaging, invalidKeyExpr, invalidRef]).toHaveLength(4);
   });
 
   it('exports the exact narrow provider contract', () => {

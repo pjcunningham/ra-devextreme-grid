@@ -166,7 +166,7 @@ The library defines **no HTTP protocol or endpoint**. Your provider decides betw
 - Active `group`, `groupSummary`, `totalSummary`, or `requireGroupCount: true` reject before the provider runs. Null/empty advanced descriptors and false group-count defaults are inactive. Active projection/search and unrelated semantic query operations (such as `select` or `expand`) also reject; bookkeeping like `userData` and inactive DataSource search defaults are ignored.
 - `getGrid` must return an object with a `data` array. `totalCount` is required when requested and must then be numeric, finite, and non-negative. A supplied optional count is validated identically; absent optional counts stay absent. Neither `data.length` nor React-Admin `total` is substituted. Records require stable `id` keys; deep record validation is not performed.
 
-The store uses `key: 'id'` and `loadMode: 'processed'`: server pages are not re-filtered/re-sorted locally under the supported configuration. The adapter also sets `keyExpr="id"` for consistency; DevExtreme reports `W1011` for store-backed sources because the **store key is authoritative**.
+The store uses `key: 'id'` and `loadMode: 'processed'`: server pages are not re-filtered/re-sorted locally under the supported configuration. Remote row identity is provided exclusively by the CustomStore `key`; DataGrid `keyExpr` is not configured, eliminating DevExtreme warning `W1011`.
 
 ### Lifecycle, loading, and errors
 

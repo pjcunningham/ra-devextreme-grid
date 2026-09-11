@@ -28,6 +28,13 @@ describe('processed grid store', () => {
     expect(getGrid).toHaveBeenCalledWith('customers', { loadOptions });
   });
 
+  it('declares key "id" and resolves both string and numeric record identifiers', () => {
+    const { store } = makeStore();
+    expect(store.key()).toBe('id');
+    expect(store.keyOf({ id: 'customer-1' })).toBe('customer-1');
+    expect(store.keyOf({ id: 101 })).toBe(101);
+  });
+
   it('omits absent optional count and accepts a real zero count', async () => {
     expect(await makeStore(vi.fn().mockResolvedValue({ data: [] })).store.load({})).toEqual({
       data: [],
