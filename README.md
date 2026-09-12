@@ -292,3 +292,6 @@ Copyright (c) 2026 Paul Cunningham.
 ### DevExpress Licensing Notice
 
 DevExtreme is a commercial UI component suite developed and licensed by Developer Express Inc. Users of `ra-devextreme-grid` are solely responsible for ensuring they possess an appropriate and valid license from Developer Express Inc. to use DevExtreme in their applications and development environments.
+
+## Support the project
+If ra-devextreme-grid saves you development time, you can support its continued maintenance through [GitHub Sponsors](https://github.com/sponsors/pjcunningham).
