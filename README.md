@@ -281,6 +281,7 @@ It demonstrates:
 ## License & Legal Notices
 
 ### Package License
+
 `ra-devextreme-grid` is licensed under the [MIT License](./LICENSE).
 Copyright (c) 2026 Paul Cunningham.
 
