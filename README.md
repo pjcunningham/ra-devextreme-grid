@@ -265,6 +265,10 @@ It demonstrates:
 - **Group Paging & Group Summaries**: Recursive SQL aggregation and windowed group pagination without N+1 query overhead.
 - **Browser E2E Integration**: Full Playwright test suite verifying real browser interaction with the live backend.
 
+## Live Demo
+
+A public live demo can be deployed directly from the FastAPI reference application. The production build uses same-origin `/api` requests behind Nginx and keeps the deterministic synthetic SQLite dataset read-only. No public URL is configured yet; see the [generic deployment guide](./examples/remote-fastapi/deploy/README.md) to build and deploy the reference application.
+
 ---
 
 ## Known Limitations

@@ -3,6 +3,7 @@ import { Column, GroupItem, GroupPanel, Summary, TotalItem } from 'devextreme-re
 import { DatagridDXRemote } from '../../../../src/index';
 import type { Customer } from './App';
 import { onGridSuccess } from './dataProvider';
+import { DemoIntro } from './DemoIntro';
 
 export function GroupPagedRemoteCustomerList(): React.JSX.Element {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -11,8 +12,9 @@ export function GroupPagedRemoteCustomerList(): React.JSX.Element {
     setErrorMessage(event.error instanceof Error ? event.error.message : String(event.error));
   }, []);
   return (
-    <div style={{ padding: '16px' }}>
-      <h1>Group-Paged Remote Customers</h1>
+    <div className="demo-page">
+      <DemoIntro />
+      <h2 className="demo-page-title">Group-Paged Remote Customers</h2>
       <p>Groups start collapsed. Expand a country, then a company to load records remotely.</p>
       {errorMessage && (
         <div role="alert" className="app-error-alert">

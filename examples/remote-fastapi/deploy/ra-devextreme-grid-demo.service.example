@@ -1,0 +1,23 @@
+[Unit]
+Description=ra-devextreme-grid public demo API
+After=network.target
+
+[Service]
+Type=simple
+User=demo-user
+Group=demo-user
+WorkingDirectory=/opt/ra-devextreme-grid-demo/backend
+Environment="GRID_DATABASE_URL=sqlite:////var/lib/ra-devextreme-grid-demo/demo.db"
+ExecStart=/usr/bin/env uv run --locked uvicorn app.main:app --host 127.0.0.1 --port 8001
+Restart=on-failure
+RestartSec=5s
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/ra-devextreme-grid-demo
+
+[Install]
+WantedBy=multi-user.target

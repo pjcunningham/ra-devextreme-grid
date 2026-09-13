@@ -29,6 +29,19 @@ test.describe('FastAPI Remote Grid End-to-End Tests', () => {
     const dataRows = page.locator('.dx-datagrid-rowsview .dx-data-row:visible');
     await expect(dataRows).toHaveCount(10);
 
+    await expect(page.getByRole('heading', { name: 'ra-devextreme-grid live demo' })).toBeVisible();
+    await expect(page.getByText('All demo data is synthetic.')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'GitHub', exact: true })).toHaveAttribute(
+      'href',
+      'https://github.com/pjcunningham/ra-devextreme-grid'
+    );
+    await expect(page.getByRole('link', { name: 'npm package' })).toHaveAttribute(
+      'href',
+      'https://www.npmjs.com/package/ra-devextreme-grid'
+    );
+    await page.getByText('Latest getGrid() request').click();
+    await expect(page.locator('.request-inspector pre')).toContainText('"skip": 0');
+
     // Pager reports backend dataset count
     const pager = page.locator('.dx-datagrid-pager');
     await expect(pager).toContainText('100');

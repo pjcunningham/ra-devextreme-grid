@@ -11,6 +11,7 @@ const e2eDbPath = path
 
 export default defineConfig({
   testDir: './tests/e2e',
+  testIgnore: 'production-demo.spec.ts',
   globalSetup: './tests/e2e/global-setup.ts',
   fullyParallel: false,
   workers: 1,

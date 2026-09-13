@@ -92,6 +92,10 @@ def create_app(
             context={"load_options": request.load_options},
         )
 
+    @app.get("/api/health")
+    def health() -> dict[str, str]:
+        return {"status": "ok"}
+
     return app
 
 

@@ -1,0 +1,74 @@
+name: Build public demo artifact
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 10.20.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.1.0
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install backend dependencies
+        run: uv sync --locked --directory examples/remote-fastapi/backend
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Verify deployable example
+        run: |
+          pnpm lint
+          pnpm typecheck
+          uv run --directory examples/remote-fastapi/backend ruff check .
+          uv run --directory examples/remote-fastapi/backend pytest
+
+      - name: Require DevExpress build licence
+        env:
+          DevExpress_License: ${{ secrets.DEVEXPRESS_LICENSE }}
+        run: test -n "$DevExpress_License"
+
+      - name: Build same-origin frontend
+        env:
+          DevExpress_License: ${{ secrets.DEVEXPRESS_LICENSE }}
+        run: pnpm build:remote-fastapi
+
+      - name: Verify production API configuration
+        run: node scripts/verify-demo-build.mjs
+
+      - name: Test production same-origin architecture
+        run: node tests/e2e/run-production.mjs
+
+      - name: Stage deployment artifact
+        run: |
+          mkdir -p demo-artifact/frontend demo-artifact/backend
+          cp -R dist-remote-fastapi/. demo-artifact/frontend/
+          cp -R examples/remote-fastapi/backend/app demo-artifact/backend/app
+          cp examples/remote-fastapi/backend/pyproject.toml demo-artifact/backend/
+          cp examples/remote-fastapi/backend/uv.lock demo-artifact/backend/
+          cp examples/remote-fastapi/backend/.python-version demo-artifact/backend/
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ra-devextreme-grid-demo
+          path: demo-artifact/
+          if-no-files-found: error
+          retention-days: 14

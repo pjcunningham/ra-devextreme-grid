@@ -29,6 +29,7 @@
     "test": "vitest run",
     "test:package": "node scripts/test-package.mjs",
     "test:e2e": "node tests/e2e/run.mjs",
+    "test:e2e:production": "pnpm build:remote-fastapi && node scripts/verify-demo-build.mjs && node tests/e2e/run-production.mjs",
     "test:e2e:headed": "node tests/e2e/run.mjs --headed"
   },
   "peerDependencies": {

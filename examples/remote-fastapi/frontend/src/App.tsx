@@ -3,6 +3,7 @@ import { Admin, Resource, defaultLightTheme, type RaRecord } from 'react-admin';
 import { Column, Summary, TotalItem } from 'devextreme-react/data-grid';
 import { DatagridDXRemote } from '../../../../src/index';
 import { dataProvider, onGridSuccess } from './dataProvider';
+import { DemoIntro } from './DemoIntro';
 import { GroupedRemoteCustomerList } from './GroupedRemoteCustomerList';
 import { GroupPagedRemoteCustomerList } from './GroupPagedRemoteCustomerList';
 
@@ -48,22 +49,11 @@ export function RemoteCustomerList(): React.JSX.Element {
   }, []);
 
   return (
-    <div style={{ padding: '16px' }}>
-      <h1>Remote Customers</h1>
+    <div className="demo-page">
+      <DemoIntro />
+      <h2 className="demo-page-title">Remote Customers</h2>
       {errorMessage && (
-        <div
-          role="alert"
-          className="app-error-alert"
-          style={{
-            backgroundColor: '#fde8e8',
-            color: '#9b1c1c',
-            padding: '12px 16px',
-            marginBottom: '16px',
-            borderRadius: '4px',
-            border: '1px solid #f8b4b4',
-            fontWeight: 500,
-          }}
-        >
+        <div role="alert" className="app-error-alert">
           {errorMessage}
         </div>
       )}

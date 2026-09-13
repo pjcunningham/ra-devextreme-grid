@@ -3,6 +3,7 @@ import { Column, GroupItem, GroupPanel, Summary, TotalItem } from 'devextreme-re
 import { DatagridDXRemote } from '../../../../src/index';
 import type { Customer } from './App';
 import { onGridSuccess } from './dataProvider';
+import { DemoIntro } from './DemoIntro';
 
 export function GroupedRemoteCustomerList(): React.JSX.Element {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -20,22 +21,11 @@ export function GroupedRemoteCustomerList(): React.JSX.Element {
   }, []);
 
   return (
-    <div style={{ padding: '16px' }}>
-      <h1>Grouped Remote Customers</h1>
+    <div className="demo-page">
+      <DemoIntro />
+      <h2 className="demo-page-title">Grouped Remote Customers</h2>
       {errorMessage && (
-        <div
-          role="alert"
-          className="app-error-alert"
-          style={{
-            backgroundColor: '#fde8e8',
-            color: '#9b1c1c',
-            padding: '12px 16px',
-            marginBottom: '16px',
-            borderRadius: '4px',
-            border: '1px solid #f8b4b4',
-            fontWeight: 500,
-          }}
-        >
+        <div role="alert" className="app-error-alert">
           {errorMessage}
         </div>
       )}

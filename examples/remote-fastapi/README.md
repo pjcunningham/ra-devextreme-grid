@@ -4,6 +4,10 @@ This **FastAPI + SQLModel**, **UV**-managed reference implementation and dedicat
 
 It demonstrates flat paging, ordered multi-column sorting, secure filtering, complete remote group trees, lazy remote group paging, group/total summaries, current-scope group counts, date-only transport, HTTP 422 display, and native loading panels over real HTTP with development CORS.
 
+The same source is also deployment-ready as the public live demo. Its production Vite build uses same-origin `/api`, while local Vite development continues to call `http://127.0.0.1:8000/api`. See the [generic Nginx/systemd deployment guide](./deploy/README.md). No Vite development server is used in production.
+
+Every page identifies the running grid as a real `DatagridDXRemote` instance and visibly states that all demo data is synthetic. Project, source, npm, and Sponsors links are included above the grid. A collapsed request inspector shows the latest browser-generated `getGrid()` load options without credentials, headers, or server data.
+
 See the [Phase 7B report](../../docs/phase-7b-report.md) for complete browser architecture, captured request payloads, and test results.
 
 See the [Phase 8A report](../../docs/phase-8a-report.md) for current summary contracts, executed SQL, browser footer evidence and verification results.
@@ -47,6 +51,17 @@ http://127.0.0.1:5174
 
 > **Note on DevExtreme Trial / Evaluation**: DevExtreme will output standard evaluation/license warnings in the browser console if a commercial license key is not supplied. These are benign and do not impair functionality.
 
+### Production frontend build
+
+```sh
+pnpm build:remote-fastapi
+node scripts/verify-demo-build.mjs
+```
+
+The build is written to `dist-remote-fastapi/`. With no `VITE_GRID_API_URL` override, production requests use `/api/customers/grid` on the frontend origin. Development mode defaults to `http://127.0.0.1:8000/api/customers/grid`; an explicit `VITE_GRID_API_URL` replaces the API base in either mode.
+
+The private DevExpress build licence must be supplied through secure environment or CI secrets according to DevExpress tooling. Do not commit it to this repository or an `.env` file. The deployment guide uses `${DEVEXPRESS_LICENSE}` only as a secret-manager placeholder.
+
 ## Running Automated End-to-End Tests
 
 The browser suite has **35 passing scenarios**: 17 flat/total-summary regressions, four complete-tree scenarios, four group-paging scenarios, and 10 layout persistence scenarios. The scenarios pass in Chromium with strict resource/console checks and fresh server/database isolation.
@@ -87,6 +102,16 @@ uv run uvicorn app.main:app --reload
 ```
 
 The server listens at `http://127.0.0.1:8000`; interactive OpenAPI documentation is at `/docs`. First startup creates `backend/data/customers.db` and idempotently seeds 100 customers. Tests use isolated SQLite engines and do not alter this database.
+
+For a production-like localhost process behind Nginx:
+
+```sh
+GRID_DATABASE_URL=sqlite:////var/lib/ra-devextreme-grid-demo/demo.db \
+uv run --directory examples/remote-fastapi/backend --locked \
+    uvicorn app.main:app --host 127.0.0.1 --port 8001
+```
+
+`GET /api/health` returns only `{"status":"ok"}`. `/docs` and `/openapi.json` remain available for this developer demo. Production does not enable FastAPI debug mode and relies on ordinary Uvicorn/FastAPI and Nginx logging.
 
 ```sh
 uv run pytest
