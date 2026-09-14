@@ -2,6 +2,7 @@
 
 > DevExtreme DataGrid integration for React-Admin, supporting both React-Admin-managed lists and native DevExtreme remote server operations.
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Open-blue)](https://ra-devextreme-grid-demo.borsuk.co.uk/)
 [![CI](https://github.com/pjcunningham/ra-devextreme-grid/actions/workflows/ci.yml/badge.svg)](https://github.com/pjcunningham/ra-devextreme-grid/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![npm version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://www.npmjs.com/package/ra-devextreme-grid)
