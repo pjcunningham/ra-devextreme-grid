@@ -56,3 +56,4 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 examples/remote-fastapi/backend/data/
+examples/remote-fastapi/frontend/src/devextreme-license.ts
